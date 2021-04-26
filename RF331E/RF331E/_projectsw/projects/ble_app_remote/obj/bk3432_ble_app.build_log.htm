@@ -1,0 +1,66 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: ¦ÌVision V5.27.0.0
+Copyright (C) 2018 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: fa da, ttttt, LIC=585FJ-UHT4D-45WT5-G7R4P-DCAL1-6AJPJ
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Plus  Version: 5.27.0.0
+Toolchain Path:  C:\Keil_v5\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.06 update 6 (build 750)
+Assembler:       Armasm.exe V5.06 update 6 (build 750)
+Linker/Locator:  ArmLink.exe V5.06 update 6 (build 750)
+Library Manager: ArmAr.exe V5.06 update 6 (build 750)
+Hex Converter:   FromElf.exe V5.06 update 6 (build 750)
+CPU DLL:         SARM.DLL V5.27.0.0
+Dialog DLL:      DARMP3.DLL
+Target DLL:      Segger\JLTAgdi.dll V1.61.0.0
+Dialog DLL:      TARMP3.DLL V1.4.0.0
+ 
+<h2>Project:</h2>
+E:\jim\project\A2021\RF331E\RF331E\_projectsw\projects\ble_app_remote\bk3435.uvproj
+Project File Date:  04/21/2021
+
+<h2>Output:</h2>
+*** Using Compiler 'V5.06 update 6 (build 750)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'BK3435_app'
+compiling arch_main.c...
+compiling rwip.c...
+compiling rwble.c...
+compiling icu.c...
+compiling intc.c...
+compiling gpio.c...
+compiling uart.c...
+compiling app.c...
+compiling app_task.c...
+compiling app_sec.c...
+compiling app_hid.c...
+compiling app_wlist.c...
+compiling app_key.c...
+linking...
+Program Size: Code=28678 RO-data=2414 RW-data=204 ZI-data=8836  
+After Build - User command #1: fromelf --bin --output .\output\app\bk3432_ble_app.bin .\obj\bk3432_ble_app.axf
+After Build - User command #2: .\output\encrypt_app.bat
+E:\jim\project\A2021\RF331E\RF331E\_projectsw\projects\ble_app_remote>.\output\BinConvert_3432.exe  -oad .\output\bim\bk3432_ble_bim.bin  .\output\stack\bk3432_ble_stack.bin  .\output\app\bk3432_ble_app.bin -m 0x1020 -l 0x17020 -v 0x000C -rom_v 0x000A -e 00000000 00000000 00000000 00000000 
+cmd_bin_oad.stack_file_addr :0x1020
+binary version hex:0xc; dec:12
+Arm Image Binary will be converted to OAD format binary file.....
+cmd_bin_oad.stack_file_addr=1020
+boot_bin_len=fa0
+add stack bin start
+oad_stack_app_bin_len=1db00
+oad_app_bin_len=7b00
+c5 ae ad 55 0c 00 c0 1e 42 42 42 42 ff ff 0a 00 /**< @CREATE_FILE_SUCCESS */
+/**< @Download flash file:.\output\app\bk3432_ble_app_merge.bin
+/**< @OAD file :.\output\app\bk3432_ble_app_stack.bin,CRC = 0x5bc3a18f
+/**< @OAD file :.\output\app\bk3432_ble_app_app.bin,CRC = 0x55adaec5
+/**< @author <gang.cheng@bekencorp.com> */
+/**< @version v0.3 */
+".\obj\bk3432_ble_app.axf" - 0 Error(s), 0 Warning(s).
+Build Time Elapsed:  00:00:05
+</pre>
+</body>
+</html>

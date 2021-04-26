@@ -1,0 +1,63 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: μVision V5.12.0.0
+Copyright (C) 2014 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: l Microsoft, Microsoft, LIC=TIVPC-7TPLJ-Y8JFK-ZAQ8Y-LC2LK-90JBV
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Standard  Version: 5.12.0.0
+Toolchain Path:  C:\Keil_v5\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.05 (build 41)
+Assembler:       Armasm.exe V5.05 (build 41)
+Linker/Locator:  ArmLink.exe V5.05 (build 41)
+Library Manager: ArmAr.exe V5.05 (build 41)
+Hex Converter:   FromElf.exe V5.05 (build 41)
+CPU DLL:         SARM.DLL V5.12.0.0
+Dialog DLL:      DARMP3.DLL
+    Target DLL: Segger\JLTAgdi.dll
+Dialog DLL:      TARMP3.DLL V1.02
+ 
+<h2>Project:</h2>
+D:\work\BK3432\rw_ble\internal\bk3432_V17_0C0A\SDK\projects\bim_1\bk3432.uvproj
+Project File Date:  08/06/2018
+
+<h2>Output:</h2>
+Rebuild target 'BK3432_bim'
+compiling bim_app.c...
+compiling bim_intc.c...
+compiling bim_uart.c...
+assembling bim_vectors.s...
+assembling bim_handlers.s...
+compiling bim_flash.c...
+compiling bim_updataImage.c...
+linking...
+Program Size: Code=3964 RO-data=0 RW-data=36 ZI-data=15944  
+After Build - User command #1: fromelf --bin --output .\output\bim\bk3432_ble_bim.bin .\obj\bk3432_ble_bim.axf
+After Build - User command #2: .\output\encrypt_bim.bat
+D:\work\BK3432\rw_ble\internal\bk3432_V17_0C0A\SDK\projects\bim_1>.\output\BinConvert_bim  -oad .\output\bim\bk3432_ble_bim.bin -m 0x2000 -l 0x20000 -e 00000000 00000000 00000000 00000000 
+you do not appoint version information default:0x862
+cmd_bin_oad.stack_file_addr :0x2000
+you do not appoint rom version,default :0xffff
+binary version hex:0x862; dec:2146
+Arm Image Binary will be converted to OAD format binary file.....
+cmd_bin_oad.stack_file_addr=2000
+boot_bin_len=fa0
+        Encrypt Seccessfully!
+        File Size: 0x109a
+/**< @CREATE_FILE_SUCCESS */
+/**< @Download flash file:.\output\bim\bk3432_ble_bim_crc.bin
+/**< @OAD file :(null),CRC = 0xcccccccc
+/**< @OAD file :(null),CRC = 0xcccccccc
+/**< @author <gang.cheng@bekencorp.com> */
+/**< @version v0.3 */
+D:\work\BK3432\rw_ble\internal\bk3432_V17_0C0A\SDK\projects\bim_1>copy .\output\bim\bk3432_ble_bim.bin ..\ble_app_gatt_1\output\bim 
+已复制         1 个文件。
+D:\work\BK3432\rw_ble\internal\bk3432_V17_0C0A\SDK\projects\bim_1>copy .\output\bim\bk3432_ble_bim.bin ..\ble_app_gma_1\output\bim 
+已复制         1 个文件。
+".\obj\bk3432_ble_bim.axf" - 0 Error(s), 0 Warning(s).
+</pre>
+</body>
+</html>
