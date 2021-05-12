@@ -117,7 +117,6 @@ void appm_init()
 {
 	// Reset the application manager environment
 	
-	memset(&app_env, 0, sizeof(app_env));
 
 	// Create APP task
 	ke_task_create(TASK_APP, &TASK_DESC_APP);
@@ -125,44 +124,6 @@ void appm_init()
 	// Initialize Task state
 	ke_state_set(TASK_APP, APPM_INIT);
 
-	app_env.dev_name_len = sizeof(APP_HID_DEVICE_NAME);  ///190409
-	memcpy(&app_env.dev_name[0], APP_HID_DEVICE_NAME, sizeof(APP_HID_DEVICE_NAME));
-#if (NVDS_SUPPORT)	
-    uint8_t key_len = KEY_LEN;
-	if (nvds_get(NVDS_TAG_LOC_IRK, &key_len, app_env.loc_irk) != NVDS_OK)
-	{
-		// generate a new IRK
-		for (uint8_t counter = 0; counter < KEY_LEN; counter++)
-		{
-			app_env.loc_irk[counter]    = (uint8_t)co_rand_word();
-		}
-		// Store the generated value in NVDS
-		if (nvds_put(NVDS_TAG_LOC_IRK, KEY_LEN, (uint8_t *)&app_env.loc_irk) != NVDS_OK)
-		{
-			ASSERT_INFO(0, NVDS_TAG_LOC_IRK, 0);
-		}
-	}
-#else
-    // generate a new IRK
-		for (uint8_t counter = 0; counter < KEY_LEN; counter++)
-		{
-			app_env.loc_irk[counter]    = (uint8_t)co_rand_word();
-		}
-#endif
-
-	/*------------------------------------------------------
-	 * INITIALIZE ALL MODULES
-	 *------------------------------------------------------*/
-	// HID Module
-	app_hid_init();
-
-	// Device Information Module
-	app_dis_init();
-
-	// Battery Module
-	app_batt_init();
-
-	app_sec_init();
 
 }
 

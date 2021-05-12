@@ -1,0 +1,238 @@
+C51 COMPILER V9.60.0.0   HGSEMI74HC                                                        05/12/2021 09:42:55 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE HGSEMI74HC
+OBJECT MODULE PLACED IN .\app_code\hgsemi74hc.OBJ
+COMPILER INVOKED BY: d:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\keil_8051\9.60\BIN\C51.exe E:\jim\project\A
+                    -2021\CDWorkingroom1\RF392\_projectcode\RF392B005\RF392B005\rf392B005_v01\app_code\hgsemi74hc.c OMF2 SMALL DEBUG OBJECTEX
+                    -TEND ROM(LARGE) WARNINGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(DEBUG=1,SILABS_STARTUP=1) INTVECTOR(0X0000) INTPR
+                    -OMOTE INCDIR(E:\jim\project\A2021\CDWorkingroom1\RF392\_projectcode\RF392B005\RF392B005\rf392B005_v01\inc;E:\jim\project
+                    -\A2021\CDWorkingroom1\RF392\_projectcode\RF392B005\RF392B005\rf392B005_v01\inc\config;E:\jim\project\A2021\CDWorkingroom
+                    -1\RF392\_projectcode\RF392B005\RF392B005\rf392B005_v01\app_code;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v
+                    -4.2.0//Lib/efm8_capsense;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/efm8_capsense/dev
+                    -ice_layer;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/shared/si8051Base;D:/SiliconLabs/Simplic
+                    -ityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/inc) PRINT(.\app_code\hgsemi74hc.lst) COND PAGEWIDTH(120) PAGELE
+                    -NGTH(65) OBJECT(.\app_code\hgsemi74hc.OBJ)
+
+line level    source
+
+   1          /*
+   2          **************************************
+   3          hgsemi 74hc595 
+   4          **************************************
+   5          */
+   6          //preledvalue 
+   7          //nowledvalue
+   8          //ledstatus
+   9          //ledstatus_0
+  10          #include "hgsemi74hc.h"
+  11          #include "board_efm8sb.h"
+  12          
+  13          //extern unsigned  int xdata itcounter;
+  14          
+  15          //unsigned char xdata LED_Data[4] _at_ 0x1FF0;
+  16          
+  17          /*#define LED1_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x01)));
+  18          #define LED1_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x01)) | 0x01);
+  19          
+  20          #define LED2_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x02)));
+  21          #define LED2_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x02)) | 0x02);
+  22          
+  23          #define LED3_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x04)));
+  24          #define LED3_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x04)) | 0x04);
+  25          
+  26          #define LED4_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x08)));
+  27          #define LED4_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x08)) | 0x08);
+  28          
+  29          #define LED5_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x10)));
+  30          #define LED5_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x10)) | 0x10);
+  31          
+  32          #define LED6_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x20)));
+  33          #define LED6_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x20)) | 0x20);
+  34          
+  35          #define LED7_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x40)));
+  36          #define LED7_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x40)) | 0x40);
+  37          
+  38          #define LED8_ON()       semi74hc_writedata(nowledvalue = (nowledvalue & (~0x80)));
+  39          #define LED8_OFF()      semi74hc_writedata(nowledvalue = (nowledvalue & (~0x80)) | 0x80);*/
+  40          
+  41          
+  42          
+  43          /*
+  44          **@描述: 高位数据先出，最后移动Q7
+  45          */
+  46          void semi74hc_writedata(unsigned char wda)
+  47          {
+C51 COMPILER V9.60.0.0   HGSEMI74HC                                                        05/12/2021 09:42:55 PAGE 2   
+
+  48   1              
+  49   1              //sck
+  50   1              //ser
+  51   1              //rck
+  52   1              unsigned char i;
+  53   1              //if(nowledvalue == wda) return;
+  54   1              //nowledvalue = wda;
+  55   1              //--SEMI74HC_G = 0;
+  56   1              for(i = 0; i < 8; i++)
+  57   1              {
+  58   2                  delay1ms(1);
+  59   2                      SEMI74HC_SCK = 0;
+  60   2                      if(wda & 0x80)
+  61   2                      {
+  62   3                        SEMI74HC_SER = 1;     
+  63   3                      }
+  64   2                      else
+  65   2                      {
+  66   3                        SEMI74HC_SER = 0;     
+  67   3                      }
+  68   2                      delay1ms(1);
+  69   2                      SEMI74HC_SCK = 1;
+  70   2                      wda <<=1;
+  71   2              }
+  72   1              SEMI74HC_RCK = 0;
+  73   1              app_delay10us(1);
+  74   1              //dly 1us
+  75   1              SEMI74HC_RCK = 1;
+  76   1              app_delay10us(1);
+  77   1              //dly 1us
+  78   1              SEMI74HC_RCK = 0;
+  79   1      }
+  80          
+  81          /*void user_led1_litup(void)
+  82          {
+  83            //d5
+  84            LED1_ON();
+  85          }
+  86          
+  87          void user_led2_litup(void)
+  88          {
+  89            //d3
+  90            LED2_ON();
+  91          //
+  92          }
+  93          
+  94          void user_led3_litup(void)
+  95          {
+  96            //d6
+  97            LED3_ON();
+  98          //
+  99          }
+ 100          
+ 101          void user_led4_litup(void)
+ 102          {
+ 103            //D4
+ 104            LED4_ON();
+ 105          }
+ 106          
+ 107          void user_led5_litup(void)
+ 108          {
+ 109            //D2
+ 110          //
+C51 COMPILER V9.60.0.0   HGSEMI74HC                                                        05/12/2021 09:42:55 PAGE 3   
+
+ 111            LED5_ON();
+ 112          }
+ 113          void user_led6_litup(void)
+ 114          {
+ 115          //D7
+ 116            LED6_ON();
+ 117          }
+ 118          
+ 119          void user_led7_litup(void)
+ 120          {
+ 121            //D1
+ 122            LED7_ON();
+ 123          
+ 124          }
+ 125          
+ 126          void user_led1_litoff(void)
+ 127          {
+ 128            LED1_OFF();
+ 129          }
+ 130          
+ 131          void user_led2_litoff(void)
+ 132          {
+ 133            LED2_OFF();
+ 134          }
+ 135          
+ 136          void user_led3_litoff(void)
+ 137          {
+ 138            LED3_OFF();
+ 139          }
+ 140          
+ 141          void user_led4_litoff(void)
+ 142          {
+ 143            LED4_OFF();
+ 144          }
+ 145          
+ 146          void user_led5_litoff(void)
+ 147          {
+ 148            LED5_OFF();
+ 149          }
+ 150          void user_led6_litoff(void)
+ 151          {
+ 152            LED6_OFF();
+ 153          }
+ 154          
+ 155          void user_led7_litoff(void)
+ 156          {
+ 157            LED7_OFF();
+ 158          }
+ 159          
+ 160          void user_ledall_turnon(void)
+ 161          {
+ 162            LEDALL_ON();
+ 163          }
+ 164          
+ 165          void user_ledall_turnoff(void)
+ 166          {
+ 167            LEDALL_OFF();
+ 168          }*/
+ 169          
+ 170          void app_delayus(unsigned char us)
+ 171          {
+ 172   1        for(;us>0;us--)
+ 173   1          {
+C51 COMPILER V9.60.0.0   HGSEMI74HC                                                        05/12/2021 09:42:55 PAGE 4   
+
+ 174   2      
+ 175   2            NOP();
+ 176   2          }
+ 177   1      }
+ 178          void app_delay10us(unsigned char us)
+ 179          {
+ 180   1        for(;us>0;us--)
+ 181   1          {
+ 182   2        app_delayus(15);
+ 183   2          }
+ 184   1      }
+ 185          
+ 186          void delay1ms(unsigned char ums)
+ 187          {
+ 188   1        for(;ums>0;ums--)
+ 189   1          {
+ 190   2            app_delay10us(100);
+ 191   2          }
+ 192   1      }
+ 193          
+ 194          
+ 195          
+ 196          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    125    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

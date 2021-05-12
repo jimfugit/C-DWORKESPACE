@@ -296,7 +296,7 @@ void rw_main(void)
 	{
 		//schedule all pending events
 		rwip_schedule();
-
+	//UART_PRINTF("while main\r\n");
 		// Checks for sleep have to be done with interrupt disabled
 		GLOBAL_INT_DISABLE();
 
@@ -312,16 +312,19 @@ void rw_main(void)
 			// 1:idel  0:reduce voltage
 			if(icu_get_sleep_mode()||(app_key_state != ALL_KEY_FREE_DELAY))
 			{
-				cpu_idle_sleep();
+				UART_PRINTF("enter idle sleep\r\n");
+				//cpu_idle_sleep();
 			}
 			else
 			{
-				cpu_reduce_voltage_sleep();
+				UART_PRINTF("enter reduce sleep\r\n");
+				//cpu_reduce_voltage_sleep();
 			}
 		}
 		else if((sleep_type & RW_MCU_IDLE_SLEEP) == RW_MCU_IDLE_SLEEP)
 		{
-			cpu_idle_sleep();
+			UART_PRINTF("enter idle1 sleep\r\n");
+			//cpu_idle_sleep();
 		}
 #endif
 		Stack_Integrity_Check();

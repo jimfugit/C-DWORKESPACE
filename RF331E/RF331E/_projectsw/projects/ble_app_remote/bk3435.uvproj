@@ -1037,6 +1037,16 @@
             </File>
           </Files>
         </Group>
+        <Group>
+          <GroupName>user</GroupName>
+          <Files>
+            <File>
+              <FileName>userkeydriver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\userkeydriver.c</FilePath>
+            </File>
+          </Files>
+        </Group>
       </Groups>
     </Target>
   </Targets>

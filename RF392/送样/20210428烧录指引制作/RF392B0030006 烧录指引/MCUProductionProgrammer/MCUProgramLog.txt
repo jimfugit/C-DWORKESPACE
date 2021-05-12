@@ -1,0 +1,89 @@
+13:28:38 - Assigned New Programming Session Settings:
+
+  Debug Adapter: EC3005A09BE
+  Part Number: EFM8SB10F8G-QFN20
+  Erase Code Space: Yes
+  Hex File (Not Banked): E:\jim\project\A2021\RF392\送样\20210428烧录指引制作\RF392B0030006.hex
+  Flash Persistence: No
+  Serialize Parts: Yes
+  Serial Number Code Location: 0x01FFA
+  Unicode Format: No
+  Serial Number Size (Bytes): 4
+  Starting Serial: 3070230629
+  Serial Increment: 1
+  Lock Code Space: No
+
+13:28:38 - April 28 2021 - Starting New Programming Session
+13:28:44 - ERROR: Cannot Erase Code Space on Debug Adapter: EC3005A09BE
+13:33:35 - Assigned New Programming Session Settings:
+
+  Debug Adapter: EC3005A09BE
+  Part Number: EFM8SB10F8G-QFN20
+  Erase Code Space: Yes
+  Hex File (Not Banked): E:\jim\project\A2021\RF392\送样\20210428烧录指引制作\RF392B0030006.hex
+  Flash Persistence: No
+  Serialize Parts: Yes
+  Serial Number Code Location: 0x01FFA
+  Unicode Format: No
+  Serial Number Size (Bytes): 4
+  Starting Serial: 3070230629
+  Serial Increment: 1
+  Lock Code Space: No
+
+13:33:35 - April 28 2021 - Starting New Programming Session
+13:33:42 - Device Erased, Programmed and Verified with Serial 3070230629
+13:52:29 - Assigned New Programming Session Settings:
+
+  Debug Adapter: EC3005A09BE
+  Part Number: EFM8SB10F8G-QFN20
+  Erase Code Space: Yes
+  Hex File (Not Banked): E:\jim\project\A2021\RF392\送样\20210428烧录指引制作\RF392B0030006.hex
+  Flash Persistence: No
+  Serialize Parts: Yes
+  Serial Number Code Location: 0x01FFA
+  Unicode Format: No
+  Serial Number Size (Bytes): 4
+  Starting Serial: 3070230630
+  Serial Increment: 1
+  Lock Code Space: No
+
+13:52:29 - April 28 2021 - Starting New Programming Session
+13:48:35 - Assigned New Programming Session Settings:
+
+  Debug Adapter: EC3005A09BE
+  Part Number: EFM8SB10F8G-QFN20
+  Erase Code Space: Yes
+  Hex File (Not Banked): E:\jim\project\A2021\RF392\送样\20210428烧录指引制作\RF392B0030006.hex
+  Flash Persistence: No
+  Serialize Parts: Yes
+  Serial Number Code Location: 0x01FFA
+  Unicode Format: No
+  Serial Number Size (Bytes): 4
+  Starting Serial: 3070230603
+  Serial Increment: 1
+  Lock Code Space: No
+
+13:48:35 - April 29 2021 - Starting New Programming Session
+13:49:04 - ERROR: Error Downloading Hex File (E:\jim\project\A2021\RF392\送样\20210428烧录指引制作\RF392B0030006.hex)
+13:49:04 - ERROR: Invalid path
+13:49:26 - Assigned New Programming Session Settings:
+
+  Debug Adapter: EC3005A09BE
+  Part Number: EFM8SB10F8G-QFN20
+  Erase Code Space: Yes
+  Hex File (Not Banked): E:\jim\project\A2021\CDWorkingroom1\RF392\送样\20210428烧录指引制作\RF392B0030006 烧录指引\RF392B003 RF392B007烧录软件\RF392B0030006.hex
+  Flash Persistence: No
+  Serialize Parts: Yes
+  Serial Number Code Location: 0x01FFA
+  Unicode Format: No
+  Serial Number Size (Bytes): 4
+  Starting Serial: 3070230603
+  Serial Increment: 1
+  Lock Code Space: No
+
+13:49:26 - April 29 2021 - Starting New Programming Session
+13:49:34 - Device Erased, Programmed and Verified with Serial 3070230603
+13:50:14 - Device Erased, Programmed and Verified with Serial 3070230604
+13:50:46 - Device Erased, Programmed and Verified with Serial 3070230605
+13:51:15 - Device Erased, Programmed and Verified with Serial 3070230606
+13:51:44 - Device Erased, Programmed and Verified with Serial 3070230607

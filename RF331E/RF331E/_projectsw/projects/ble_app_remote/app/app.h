@@ -48,7 +48,7 @@
 #define APP_DEVICE_NAME_MAX_LEN      (18)
 
 /// Default Advertising duration - 30s (in multiple of 10ms)
-#define APP_DFLT_ADV_DURATION        (3000)
+#define APP_DFLT_ADV_DURATION        (150)
 
 
 

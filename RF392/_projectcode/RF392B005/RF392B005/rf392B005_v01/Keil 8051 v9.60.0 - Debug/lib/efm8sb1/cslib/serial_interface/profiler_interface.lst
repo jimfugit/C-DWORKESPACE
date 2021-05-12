@@ -1,0 +1,285 @@
+C51 COMPILER V9.60.0.0   PROFILER_INTERFACE                                                03/05/2021 15:46:40 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE PROFILER_INTERFACE
+OBJECT MODULE PLACED IN .\lib\efm8sb1\cslib\serial_interface\profiler_interface.OBJ
+COMPILER INVOKED BY: d:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\keil_8051\9.60\BIN\C51.exe E:\jim\project\A
+                    -2021\RF392\_projectcode\example_all\rf392_EFMV02\lib\efm8sb1\cslib\serial_interface\profiler_interface.c OMF2 SMALL DEBU
+                    -G OBJECTEXTEND ROM(LARGE) WARNINGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(DEBUG=1,SILABS_STARTUP=1) INTVECTOR(0X0
+                    -000) INTPROMOTE INCDIR(E:\jim\project\A2021\RF392\_projectcode\example_all\rf392_EFMV02\inc;E:\jim\project\A2021\RF392\_
+                    -projectcode\example_all\rf392_EFMV02\inc\config;E:\jim\project\A2021\RF392\_projectcode\example_all\rf392_EFMV02\app_cod
+                    -e;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Lib/efm8_capsense;D:/SiliconLabs/SimplicityStudio/v5/de
+                    -veloper/sdks/8051/v4.2.0//Device/EFM8SB1/efm8_capsense/device_layer;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/80
+                    -51/v4.2.0//Device/EFM8SB1/efm8_capsense/serial_interface;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//
+                    -Device/shared/si8051Base;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/inc) PRINT(.\lib\
+                    -efm8sb1\cslib\serial_interface\profiler_interface.lst) COND PAGEWIDTH(120) PAGELENGTH(65) OBJECT(.\lib\efm8sb1\cslib\ser
+                    -ial_interface\profiler_interface.OBJ)
+
+line level    source
+
+   1          /**************************************************************************//**
+   2           * Copyright (c) 2015 by Silicon Laboratories Inc. All rights reserved.
+   3           *
+   4           * http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt
+   5           *****************************************************************************/
+   6          
+   7          #include "cslib_hwconfig.h"
+   8          #include "profiler_interface.h"
+   9          #include "cslib.h"
+  10          #include "comm_routines.h"
+  11          //#include "SliderLibrary.h"
+  12          //#include "SliderConfig.h"
+  13          #include "cslib_sensor_descriptors.h"
+  14          //#include "SliderDescriptors.h"
+  15          #include "cslib_config.h"
+  16          
+  17          void printOutput(uint16_t offset, uint8_t bytes);
+  18          
+  19          
+  20          
+  21          
+  22          
+  23          #define HEADER_TYPE_COUNT 9
+  24          
+  25          idata HeaderStruct_t headerEntries[HEADER_TYPE_COUNT] = {
+  26          
+  27          {"BASELINE", DEF_NUM_SENSORS},
+  28          {"RAW", DEF_NUM_SENSORS},
+  29          {"SINGACT", DEF_NUM_SENSORS},
+  30          {"DEBACT", DEF_NUM_SENSORS},
+  31          {"TDELTA", DEF_NUM_SENSORS},
+  32          {"EXPVAL", DEF_NUM_SENSORS},
+  33          //{"SLIDER", DEF_NUM_SLIDERS},
+  34          {"NOISEEST", 1},
+  35          {"INACTTHR", DEF_NUM_SENSORS},
+  36          {"ACTTHR", DEF_NUM_SENSORS},
+  37          };
+  38          
+  39          idata uint8_t offsetArray[HEADER_TYPE_COUNT];
+  40          
+  41          
+  42          //-----------------------------------------------------------------------------
+  43          // Local variables and macros
+  44          //-----------------------------------------------------------------------------
+  45          
+  46          
+C51 COMPILER V9.60.0.0   PROFILER_INTERFACE                                                03/05/2021 15:46:40 PAGE 2   
+
+  47          
+  48          uint8_t needANewLine = 0;                 // Flag to tell output to add a
+  49                                                 // carriage return
+  50          
+  51          // These macros are called throughout the file to add carriage returns
+  52          // to the output byte stream as needed
+  53          #define NEED_NEWLINE() needANewLine = 1
+  54          #define CLEAR_NEWLINE() needANewLine = 0
+  55          
+  56          // This flag is a one-shot that will output the defined header string
+  57          // at the start of the string.  This example requires a device reset
+  58          // before the header is ever sent again.
+  59          uint8_t sendHeader = 1;
+  60          
+  61          //-----------------------------------------------------------------------------
+  62          // Local function prototypes
+  63          //-----------------------------------------------------------------------------
+  64          
+  65          void printHeader(void);               // Generates and outputs a header
+  66                                                 // describing the data in the stream
+  67          
+  68          
+  69          //-----------------------------------------------------------------------------
+  70          // CSLIB_CommUpdate()
+  71          //-----------------------------------------------------------------------------
+  72          //
+  73          // Exposed top-level debug output function.  Outputs one line of data output
+  74          // for each call.  Output controls are compile-time switches found in
+  75          // profiler_interface.h.  Function prints all of defined variable types in
+  76          // sequence before printing the next defined variable type.  For exmample,
+  77          // a configuration to print raw and baseline data for a system with two
+  78          // channels would print:
+  79          // <RAW_0> <RAW_1> <BASELINE_0> <BASELINE_1>
+  80          //
+  81          
+  82          void CSLIB_commUpdate(void)
+  83          {
+  84   1         xdata uint16_t value[DEF_NUM_SENSORS];
+  85   1      
+  86   1         // This is set during device initialization as a one-shot
+  87   1         if(sendHeader == 1)
+  88   1         {
+  89   2            printHeader();
+  90   2            sendHeader = 0;
+  91   2         }
+  92   1      
+  93   1      #if OUTPUT_MODE == FULL_OUTPUT_RX_FROM_SENSOR
+  94   1      
+  95   1      
+  96   1         printBase = &CSLIB_node;
+  97   1         printSize = sizeof(CSLIB_node[0]);
+  98   1         printCount = DEF_NUM_SENSORS;
+  99   1      
+ 100   1         //"BASELINE",
+ 101   1         printOutput(offsetArray[0], 2);
+ 102   1         //"RAW",
+ 103   1         printOutput(offsetArray[1], 2);
+ 104   1         //"SINGACT",
+ 105   1         printOutputSingAct(offsetArray[2]);
+ 106   1         //"DEBACT",
+ 107   1         printOutputDebAct(offsetArray[3]);
+ 108   1         //"TDELTA",
+ 109   1         printOutputTDelta(offsetArray[4]);
+C51 COMPILER V9.60.0.0   PROFILER_INTERFACE                                                03/05/2021 15:46:40 PAGE 3   
+
+ 110   1         //"EXPVAL",
+ 111   1         printOutput(offsetArray[6], 2);
+ 112   1         /*
+ 113   1         //"SLIDER"
+ 114   1         printBase = &Slider;
+ 115   1         printSize = sizeof(Slider[0]);
+ 116   1         */
+ 117   1      
+ 118   1         //"NOISEEST",
+ 119   1         // Have to copy from idata CSLIB_systemNoiseAverage into xdata variable for printOutput()
+ 120   1         value[0] = (uint16_t)CSLIB_systemNoiseAverage;
+ 121   1         printBase = (uint16_t)&value[0];
+ 122   1         printCount = 1;
+ 123   1         printOutput(0, 2);
+ 124   1      
+ 125   1         //"INACTTHR",
+ 126   1         // Have to copy CODE CSLIB_inactiveThreshold into xdata variable for printOutput()
+ 127   1         for( printSize = 0; printSize < DEF_NUM_SENSORS; printSize++)
+ 128   1         {
+ 129   2                 value[printSize] = CSLIB_inactiveThreshold[printSize];
+ 130   2         }
+ 131   1         printBase = (uint16_t)&value[0];
+ 132   1         printSize = sizeof(uint16_t);
+ 133   1         printCount = DEF_NUM_SENSORS;
+ 134   1         printOutput( 0, sizeof(uint16_t));
+ 135   1      
+ 136   1         //"ACTTHR",
+ 137   1         // Have to copy CODE CSLIB_activeThreshold into xdata variable for printOutput()
+ 138   1         for( printSize = 0; printSize < DEF_NUM_SENSORS; printSize++)
+ 139   1         {
+ 140   2                 value[printSize] = CSLIB_activeThreshold[printSize];
+ 141   2         }
+ 142   1         printBase = (uint16_t)&value[0];
+ 143   1         printSize = sizeof(uint16_t);
+ 144   1         printCount = DEF_NUM_SENSORS;
+ 145   1         printOutput( 0, sizeof(uint16_t));
+ 146   1      
+ 147   1         outputNewLine();
+ 148   1         
+ 149   1         for( value[0] = 0; value[0] < 50; value[0]++ )
+ 150   1         {
+ 151   2                 //Empty loop to add delay after serial output.
+ 152   2         }
+ 153   1      #endif
+ 154   1      
+ 155   1      
+ 156   1      
+ 157   1      }
+ 158          
+ 159          
+ 160          
+ 161          
+ 162          //-----------------------------------------------------------------------------
+ 163          // printHeader
+ 164          //-----------------------------------------------------------------------------
+ 165          //
+ 166          // Function defines data bytes to follow with byte-by-byte designators.
+ 167          //
+ 168          
+ 169          void calculateOffsets(void)
+ 170          {
+ 171   1      /*
+ 172   1      "BASELINE",
+C51 COMPILER V9.60.0.0   PROFILER_INTERFACE                                                03/05/2021 15:46:40 PAGE 4   
+
+ 173   1      "RAW",
+ 174   1      "PROCESS",
+ 175   1      "SINGACT",
+ 176   1      "DEBACT",
+ 177   1      "TDELTA",
+ 178   1      "NOISE",
+ 179   1      "EXPVAL",
+ 180   1      "NOISEEST"
+ 181   1      */
+ 182   1      #if OUTPUT_MODE == FULL_OUTPUT_RX_FROM_SENSOR
+ 183   1         uint16_t base = &CSLIB_node;
+ 184   1         // "BASELINE",
+ 185   1         offsetArray[0] = (uint16_t)&(CSLIB_node[0].currentBaseline) - base;
+ 186   1         // "RAW",
+ 187   1         offsetArray[1] = (uint16_t)&(CSLIB_node[0].rawBuffer[0]) - base;
+ 188   1         // "SINGACT",
+ 189   1         offsetArray[2] = (uint16_t)&(CSLIB_node[0].activeIndicator) - base;
+ 190   1         // "DEBACT",
+ 191   1         offsetArray[3] = (uint16_t)&(CSLIB_node[0].activeIndicator) - base;
+ 192   1         // "TDELTA",
+ 193   1         offsetArray[4] = (uint16_t)&(CSLIB_node[0].touchDeltaDiv16) - base;
+ 194   1         // "EXPVAL",
+ 195   1         offsetArray[6] = (uint16_t)&(CSLIB_node[0].expValue[0]) - base;
+ 196   1         // "NOISEEST"
+ 197   1         // Handled above, does not come from CSLIB_node[]
+ 198   1         // "ACTTHR",
+ 199   1         // Handled above, does not come from CSLIB_node[]
+ 200   1         // "INACTTHR",
+ 201   1         // Handled above, does not come from CSLIB_node[]
+ 202   1      
+ 203   1      
+ 204   1      
+ 205   1      #endif
+ 206   1      }
+ 207          
+ 208          void printHeader(void)
+ 209          {
+ 210   1         uint8_t index;
+ 211   1         outputNewLine();
+ 212   1      #ifdef HAS_SENSOR_DESCRIPTORS
+ 213   1         outputsensorDescriptors();
+ 214   1      #endif
+ 215   1      #ifdef HAS_SLIDER_DESCRIPTORS
+                 OutputSliderDescriptors();
+              #endif
+ 218   1         outputBeginHeader();
+ 219   1      
+ 220   1      #if OUTPUT_MODE == FULL_OUTPUT_RX_FROM_SENSOR
+ 221   1         for(index = 0; index < HEADER_TYPE_COUNT; index++)
+ 222   1         {
+ 223   2            outputHeaderCount(headerEntries[index]);
+ 224   2            outputBreak();
+ 225   2         }
+ 226   1      #endif
+ 227   1      
+ 228   1      #if OUTPUT_MODE == FULL_OUTPUT_RX_FROM_FILE
+                 for(index = 0; index < HEADER_TYPE_COUNT; index++)
+                 {
+                    outputHeaderCount(HeaderStrings[index], NUM_SENSORS);
+                    outputBreak();
+                 }
+              #endif
+ 235   1         outputNewLine();
+C51 COMPILER V9.60.0.0   PROFILER_INTERFACE                                                03/05/2021 15:46:40 PAGE 5   
+
+ 236   1         calculateOffsets();
+ 237   1      
+ 238   1      
+ 239   1      }
+ 240          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    428    ----
+   CONSTANT SIZE    =     67    ----
+   XDATA SIZE       =   ----      14
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2       1
+   IDATA SIZE       =     45    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

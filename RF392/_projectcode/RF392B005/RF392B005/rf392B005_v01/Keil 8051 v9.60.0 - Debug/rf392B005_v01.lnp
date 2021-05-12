@@ -1,0 +1,14 @@
+"./src/InitDevice.OBJ",
+"./src/Interrupts.OBJ",
+"./src/SILABS_STARTUP.OBJ",
+"./src/rf392_EFMV02_main.OBJ",
+"./lib/efm8sb1/cslib/device_layer/hardware_config.OBJ",
+"./lib/efm8sb1/cslib/device_layer/hardware_routines.OBJ",
+"./lib/efm8sb1/cslib/device_layer/low_power_config.OBJ",
+"./lib/cslib/application_layer/cslib_config.OBJ",
+"./app_code/LT8920.OBJ",
+"./app_code/hgsemi74hc.OBJ",
+"./app_code/USER_PROGRAM.OBJ",
+"./src/pwr.OBJ",
+"D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0/Lib/efm8_capsense/CSLIBRARY.LIB"
+TO "RF392B005_V01.OMF.CRBUILD" REMOVEUNUSED PRINT(.\rf392B005_v01.m51) PAGEWIDTH (120) PAGELENGTH (65) CLASSES( ECODE(C:0x0 - C:0x1ffe), HCONST(C:0x0 - C:0x1ffe), XDATA(X:0x0 - X:0xff), HDATA(X:0x0 - X:0xff))

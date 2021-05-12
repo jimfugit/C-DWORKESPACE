@@ -1,0 +1,356 @@
+C51 COMPILER V9.60.0.0   HARDWARE_ROUTINES                                                 04/21/2021 08:25:58 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE HARDWARE_ROUTINES
+OBJECT MODULE PLACED IN .\lib\efm8sb1\cslib\device_layer\hardware_routines.OBJ
+COMPILER INVOKED BY: d:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\keil_8051\9.60\BIN\C51.exe E:\jim\project\A
+                    -2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\lib\efm8sb1\cslib\device_layer\hardware_routines.c OMF2 SMALL DEBUG O
+                    -BJECTEXTEND ROM(LARGE) WARNINGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(DEBUG=1,SILABS_STARTUP=1) INTVECTOR(0X0000
+                    -) INTPROMOTE INCDIR(E:\jim\project\A2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\inc;E:\jim\project\A2021\RF392\_p
+                    -rojectcode\RF392B003\RF392B\rf392_v06\inc\config;E:\jim\project\A2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\app_
+                    -code;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Lib/efm8_capsense;D:/SiliconLabs/SimplicityStudio/v5
+                    -/developer/sdks/8051/v4.2.0//Device/EFM8SB1/efm8_capsense/device_layer;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks
+                    -/8051/v4.2.0//Device/shared/si8051Base;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/inc
+                    -) PRINT(.\lib\efm8sb1\cslib\device_layer\hardware_routines.lst) COND PAGEWIDTH(120) PAGELENGTH(65) OBJECT(.\lib\efm8sb1\
+                    -cslib\device_layer\hardware_routines.OBJ)
+
+line level    source
+
+   1          /**************************************************************************//**
+   2           * Copyright (c) 2014 by Silicon Laboratories Inc. All rights reserved.
+   3           *
+   4           * (C) Copyright 2014 Silicon Labs Inc,
+   5           * http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt
+   6           *****************************************************************************/
+   7          
+   8          #ifdef FFD
+              #include "config_profile.h"
+              #include "low_power_config.h"
+              #else
+  12          #include "cslib_hwconfig.h"
+  13          #include "cslib_config.h"
+  14          #include "low_power_config.h"
+  15          #endif
+  16          
+  17          #include "cslib.h"
+  18          #include "hardware_routines.h"
+  19          
+  20          
+  21          #include "SI_EFM8SB1_Defs.h"
+  22          
+  23          void gotoIdleStateAutoGround(void);
+  24          void gotoScanStateAutoGround(void);
+  25          
+  26          void configureCS0ActiveMode(void);
+  27          void configurePortsActiveMode(void);
+  28          
+  29          /**************************************************************************//**
+  30           * update mux
+  31           *
+  32           * Low level access to the CS0MUX register.  This is called by scanSensor().
+  33           *
+  34           *****************************************************************************/
+  35          void setMux(uint8_t muxValue)
+  36          {
+  37   1        CS0MX = muxValue;
+  38   1      }
+  39          
+  40          /**************************************************************************//**
+  41           * Configure gain setting
+  42           *
+  43           * Low level access to the gain bits.  This is called by scanSensor().
+  44           *
+  45           *****************************************************************************/
+  46          void setGain(uint8_t gainValue)
+  47          {
+C51 COMPILER V9.60.0.0   HARDWARE_ROUTINES                                                 04/21/2021 08:25:58 PAGE 2   
+
+  48   1        CS0MD1 &= ~0x07;
+  49   1        CS0MD1 |= 0x07 & gainValue;          // clear all bits except gain bits
+  50   1      }
+  51          
+  52          /**************************************************************************//**
+  53           * Return gain setting
+  54           *
+  55           * Returns the gain bits of the sensor.
+  56           *
+  57           *****************************************************************************/
+  58          uint8_t readGain(void)
+  59          {
+  60   1        return CS0MD1 & 0x07;
+  61   1      }
+  62          
+  63          /**************************************************************************//**
+  64           * Return mux value
+  65           *
+  66           * Returns the mux value from the sensor peripheral.
+  67           *
+  68           *****************************************************************************/
+  69          uint8_t readMux(void)
+  70          {
+  71   1        return CS0MX;
+  72   1      }
+  73          
+  74          /**************************************************************************//**
+  75           * Configure accumulation
+  76           *
+  77           * Sets hardware accumulator for CS0.
+  78           *
+  79           *****************************************************************************/
+  80          void setAccumulation(uint8_t accumulation)
+  81          {
+  82   1        CS0CF = 0x07 & accumulation;         // Clear all bits except accumulation
+  83   1      }
+  84          
+  85          /**************************************************************************//**
+  86           * Execute one CS0 conversion
+  87           *
+  88           * Assumes that the performance characteristics of the sensor have already
+  89           * been configured.  Enables the sensor, starts a scan, blocks until
+  90           * the scan is complete.
+  91           *
+  92           *****************************************************************************/
+  93          uint16_t CSLIB_executeConversionCB(void)
+  94          {
+  95   1      
+  96   1        SI_UU16_t scanResult;
+  97   1      
+  98   1        CS0CN0 = 0x88;                           // Enable CS0, Enable Digital Comparator
+  99   1      
+ 100   1        CS0CN0 &= ~0x20;                         // Clear the CS0 INT flag
+ 101   1      
+ 102   1        CS0CN0 |= 0x10;                          // Set CS0BUSY to begin conversion
+ 103   1      
+ 104   1      #if DEF_SLEEP_MODE_ENABLE
+ 105   1        // disable_sleep_and_stall is controlled by low power routines if device- and
+ 106   1        // component positions are met.  If any component needs the device
+ 107   1        // to not fall to suspend mode during conversion, this conditional fails
+ 108   1        if (disable_sleep_and_stall == 0)
+ 109   1        {
+ 110   2          PMU0FL = 0x01;
+C51 COMPILER V9.60.0.0   HARDWARE_ROUTINES                                                 04/21/2021 08:25:58 PAGE 3   
+
+ 111   2          PMU0CF = 0x40;                        // Enter suspend until conversion completes
+ 112   2        }
+ 113   1      #endif
+ 114   1      
+ 115   1        while (!(CS0CN0 & 0x20))
+ 116   1        {                                     // Wait in foreground
+ 117   2        }
+ 118   1        scanResult.u8[MSB] = CS0DH;             // Read Result
+ 119   1        scanResult.u8[LSB] = CS0DL;
+ 120   1      
+ 121   1        CS0CN0 = 0x00;                           // Disable CS0
+ 122   1      
+ 123   1      #if DEF_SLEEP_MODE_ENABLE
+ 124   1        // If device did go into suspend mode, check RTC state to determine if 1 ms
+ 125   1        // tick has happened and reset RTC for next tick
+ 126   1        if (disable_sleep_and_stall == 0)
+ 127   1        {
+ 128   2          CSLIB_checkTimerCB();
+ 129   2        }
+ 130   1      #endif
+ 131   1        return scanResult.u16;
+ 132   1      }
+ 133          
+ 134          /**************************************************************************//**
+ 135           * Ready CS0 for active mode, unbound sensor scanning
+ 136           *
+ 137           * This is a top-level call to configure the sensor to its operational state
+ 138           * during active mode.
+ 139           *
+ 140           *****************************************************************************/
+ 141          void CSLIB_configureSensorForActiveModeCB(void)
+ 142          {
+ 143   1        configurePortsActiveMode();
+ 144   1        configureCS0ActiveMode();
+ 145   1      }
+ 146          
+ 147          /**************************************************************************//**
+ 148           * Ready CS0 for active mode, unbound sensor scanning
+ 149           *
+ 150           * This is a top-level function that assumes there is a sensor node struct
+ 151           * with CS0-related controls.  This is called by the library to execute
+ 152           * one scan of one sensor node.  Note that the sensor output is returned
+ 153           * and not saved to buffers in this routine.  Saving is the responsibility
+ 154           * of the library routines.
+ 155           *
+ 156           *****************************************************************************/
+ 157          uint16_t CSLIB_scanSensorCB(uint8_t nodeIndex)
+ 158          {
+ 159   1        uint16_t ret_val;
+ 160   1        setMux(CSLIB_muxValues[nodeIndex]);
+ 161   1        setGain(CSLIB_gainValues[nodeIndex]);
+ 162   1      
+ 163   1        // If baseline = 0, no scans have happened and we must be in baseline
+ 164   1        // initialization routine.  If baseline is non-zero, then we are
+ 165   1        // already initialized
+ 166   1        if (CSLIB_node[nodeIndex].currentBaseline != 0)
+ 167   1        {
+ 168   2          setAccumulation(CSLIB_accumulationValues[nodeIndex]);
+ 169   2        }
+ 170   1        else
+ 171   1        {
+ 172   2          // this only occurs during startup or if a baseline is reset,
+ 173   2          // forces highest accumulation to get the cleanest sample to init baseline
+C51 COMPILER V9.60.0.0   HARDWARE_ROUTINES                                                 04/21/2021 08:25:58 PAGE 4   
+
+ 174   2              // Sets accumulator to 32x
+ 175   2          setAccumulation(0x04);
+ 176   2        }
+ 177   1        gotoScanStateAutoGround();
+ 178   1        ret_val = CSLIB_executeConversionCB();
+ 179   1        gotoIdleStateAutoGround();
+ 180   1        return ret_val;
+ 181   1      }
+ 182          
+ 183          /**************************************************************************//**
+ 184           * CS0 input auto-ground
+ 185           *
+ 186           * Gives code a chance to short non-scanning input pins to ground.  It
+ 187           * was determined in testing that shorting to ground couples more noise into
+ 188           * the sensor than leaving sensors as analog inputs.
+ 189           *
+ 190           *****************************************************************************/
+ 191          void gotoIdleStateAutoGround(void)
+ 192          {
+ 193   1        // Configure all capsenes inputs to analog input to minimize interference
+ 194   1        // coupling
+ 195   1        P0MDIN &= ~ACTIVE_MODE_MASK_P0;
+ 196   1        P1MDIN &= ~ACTIVE_MODE_MASK_P1;
+ 197   1      }
+ 198          /**************************************************************************//**
+ 199           * Scan state for auto-ground system
+ 200           *
+ 201           * Function used to enable sensor about to be scanned as analog input,
+ 202           * leaving all other sensors as open drain outputs.  During testing it
+ 203           * was determined that this coupled more noise into sensors and so now
+ 204           * all capsense inputs are always analog input.
+ 205           *
+ 206           *****************************************************************************/
+ 207          void gotoScanStateAutoGround(void)
+ 208          {
+ 209   1      }
+ 210          
+ 211          /**************************************************************************//**
+ 212           * Configure CS0 block for active scanning
+ 213           *
+ 214           * Configure capsense input block for unbound, sensor-by-sensor scanning.
+ 215           *
+ 216           *****************************************************************************/
+ 217          void configureCS0ActiveMode(void)
+ 218          {
+ 219   1      
+ 220   1        CS0CF = 0x00;                        // Clear CS0CF
+ 221   1      
+ 222   1        CS0MD2 &= 0xC0;                      // Configure for 16-bit conversions
+ 223   1        CS0MD2 |= 0xC0;                      // and CS0 discharge time of 1.5 uS
+ 224   1        CS0MD2 &= ~0x38;
+ 225   1        CS0MD2 |= 0x18;
+ 226   1      
+ 227   1        CS0THH = 0;                         // Set threshold to 0 to always wake
+ 228   1        CS0THL = 0;                         // from suspend mode with comparator
+ 229   1      
+ 230   1        CS0SCAN0 = 0;                       // Clear all channel binding
+ 231   1        CS0SCAN1 = 0;
+ 232   1      
+ 233   1        CS0MD1 |= 0x10;                      // Enable double reset
+ 234   1        CS0CN0 = 0x88;                        // Enable CS0, Enable Digital Comparator
+ 235   1      
+ 236   1        CS0CN0 &= ~0x20;
+C51 COMPILER V9.60.0.0   HARDWARE_ROUTINES                                                 04/21/2021 08:25:58 PAGE 5   
+
+ 237   1      
+ 238   1        // A single conversion is executed during initialization because
+ 239   1        // it was seen that the first sample after exiting sleep had bit errors
+ 240   1        CS0CN0 |= 0x10;                       // Set CS0BUSY to begin conversion
+ 241   1        while (!(CS0CN0 & 0x20))
+ 242   1        {
+ 243   2          ;                                  // Wait in foreground
+ 244   2      
+ 245   2        }
+ 246   1        CS0CN0 = 0x00;                        // Disable CS0
+ 247   1      
+ 248   1      }
+ 249          
+ 250          /**************************************************************************//**
+ 251           * Capsense input configuration for active mode
+ 252           *
+ 253           * Configure CS0 block for active scanning.  This configures all capsense
+ 254           * inputs for the part to analog input mode, regardless of whether they
+ 255           * are enabled by the config profile or validated at runtime.
+ 256           *
+ 257           *****************************************************************************/
+ 258          void configurePortsActiveMode(void)
+ 259          {
+ 260   1        P0 &= ~ACTIVE_MODE_MASK_P0;
+ 261   1        P1 &= ~ACTIVE_MODE_MASK_P1;
+ 262   1      
+ 263   1        gotoIdleStateAutoGround();
+ 264   1      
+ 265   1      }
+ 266          
+ 267          /**************************************************************************//**
+ 268           * Find highest valid gain setting
+ 269           *
+ 270           * @returns CS0MD1 gain setting that is valid
+ 271           *
+ 272           * Executed before entering sleep mode.  used to find highest gain setting
+ 273           * possible for all bound CS0 inputs without saturating sensor and gives
+ 274           * margin for sleep touch qualification.
+ 275           *
+ 276           *****************************************************************************/
+ 277          uint8_t determine_highest_gain(void)
+ 278          {
+ 279   1        uint8_t index;
+ 280   1        // Step through all gain settings until valid one is found
+ 281   1        for (index = 0; index < 8; index++)
+ 282   1        {
+ 283   2              // Start at highest gain and decrement
+ 284   2          setGain(7 - index);
+ 285   2          // If sensor isn't saturated and there is sufficent margin, stop
+ 286   2          if (CSLIB_executeConversionCB() < 0xFFFF - 1000)
+ 287   2          {
+ 288   3            break;
+ 289   3          }
+ 290   2        }
+ 291   1        // Catch case in above loop where it could avoid the break and
+ 292   1        // return an index incremented to an invalid value
+ 293   1        if (index == 8)
+ 294   1        {
+ 295   2          return 0;
+ 296   2        }
+ 297   1        else
+ 298   1        {
+ 299   2          return (7 - index);
+C51 COMPILER V9.60.0.0   HARDWARE_ROUTINES                                                 04/21/2021 08:25:58 PAGE 6   
+
+ 300   2        }
+ 301   1      }
+ 302          void CSLIB_baselineInitEnableCB(void)
+ 303          {
+ 304   1        // Stub for this build because baseline config is the same as active mode config
+ 305   1      }
+ 306          
+ 307          void CSLIB_baselineInitDisableCB(void)
+ 308          {
+ 309   1        // Stub for this build because baseline config is the same as active mode config
+ 310   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    268    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

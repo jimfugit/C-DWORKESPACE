@@ -246,7 +246,7 @@ void appm_start_dirc_adver(void)
 
 #if (SYSTEM_SLEEP)
 			//Start the advertising timer
-			ke_timer_set(APP_ADV_TIMEOUT_TIMER, TASK_APP, APP_DFLT_ADV_DURATION);
+			//ke_timer_set(APP_ADV_TIMEOUT_TIMER, TASK_APP, APP_DFLT_ADV_DURATION);
 #endif
 
 #if !(SYSTEM_SLEEP)
@@ -433,7 +433,7 @@ void appm_start_advertising(void)
 
 #if (SYSTEM_SLEEP)
 		//Start the advertising timer
-		ke_timer_set(APP_ADV_TIMEOUT_TIMER, TASK_APP, APP_DFLT_ADV_DURATION);
+		//ke_timer_set(APP_ADV_TIMEOUT_TIMER, TASK_APP, APP_DFLT_ADV_DURATION);
 #endif
 
 		wdt_enable(0x3fff);
@@ -451,6 +451,7 @@ void appm_stop_advertising(void)
 {
 	if (ke_state_get(TASK_APP) == APPM_ADVERTISING)
 	{
+		UART_PRINTF("appm stop adver\r\n");
 		// Stop the advertising timer if needed
 		if (ke_timer_active(APP_ADV_TIMEOUT_TIMER, TASK_APP))
 		{

@@ -32,7 +32,6 @@
 ".\obj\app_wlist.o"
 ".\obj\app_key.o"
 --library_type=microlib --nodebug --scatter "..\..\sdk\project_files\link_app.txt"
-
---entry sys_Reset --summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--entry sys_Reset --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
 --list ".\lst\bk3432_ble_app.map" -o .\obj\bk3432_ble_app.axf

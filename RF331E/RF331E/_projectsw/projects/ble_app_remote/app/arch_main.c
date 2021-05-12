@@ -58,7 +58,9 @@
 #include "app_hid.h"
 #include "wdt.h"
 #include "user_config.h"
-
+//---------------------
+#include "userkeydriver.h"
+//---------------------
 /**
  ****************************************************************************************
  * @addtogroup DRIVERS
@@ -296,7 +298,8 @@ void rw_main(void)
 	{
 		//schedule all pending events
 		rwip_schedule();
-
+    vkeyscan();
+		//UART_PRINTF("vkeyscan\r\n");
 		// Checks for sleep have to be done with interrupt disabled
 		GLOBAL_INT_DISABLE();
 

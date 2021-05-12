@@ -31,6 +31,7 @@
 ".\obj\app_hid.o"
 ".\obj\app_wlist.o"
 ".\obj\app_key.o"
+".\obj\userkeydriver.o"
 --library_type=microlib --nodebug --scatter "..\..\sdk\project_files\link_app.txt"
 --entry sys_Reset --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

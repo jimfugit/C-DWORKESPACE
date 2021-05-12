@@ -70,3 +70,4 @@
 .\obj\arch_main.o: ..\..\sdk\ble_stack\com\profiles\oad\api\oads.h
 .\obj\arch_main.o: app\app_hid.h
 .\obj\arch_main.o: ..\..\sdk\plactform\driver\wdt\wdt.h
+.\obj\arch_main.o: app\userkeydriver.h

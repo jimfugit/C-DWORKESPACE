@@ -81,10 +81,10 @@ typedef enum
 #define GPIOD_6     0x36
 #define GPIOD_7     0x37
 
-#define	BlueLedPort		0x11
-#define	BlueLedOn()		REG_APB5_GPIOB_DATA |= 0x02
-#define	BlueLedOff()	REG_APB5_GPIOB_DATA &= (~0x02)
-#define	BlueLedToggle()	REG_APB5_GPIOB_DATA ^= 0x02
+#define	BlueLedPort		0x13
+#define	BlueLedOn()		REG_APB5_GPIOB_DATA |= 0x08
+#define	BlueLedOff()	REG_APB5_GPIOB_DATA &= (~0x08)
+#define	BlueLedToggle()	REG_APB5_GPIOB_DATA ^= 0x08
 
 
 #define	RedLedPort		0x27

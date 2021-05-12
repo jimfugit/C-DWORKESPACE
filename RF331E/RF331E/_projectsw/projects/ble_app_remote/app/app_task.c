@@ -663,21 +663,9 @@ static int app_period_timer_handler(ke_msg_id_t const msgid,
 	static uint16_t key_free_dalay_cnt=0;
 
 	//gpio_triger(0x15);
-	key_process();
-	hid_send_keycode();
+	//key_process();
 
-	if(ke_state_get(TASK_APP) == APPM_CONNECTED)
-	{
-		//BlueLedOn();
-	}
-	else
-	{
-		if(++uLedDutyCnt > APP_LEDDUTY_DB)
-		{
-			uLedDutyCnt = 0;
-			//BlueLedToggle();
-		}
-	}
+
 
 #if (SYSTEM_SLEEP)
 	app_key_state = key_status_check();

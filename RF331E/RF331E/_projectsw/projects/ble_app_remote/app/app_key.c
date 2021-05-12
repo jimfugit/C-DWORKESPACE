@@ -116,19 +116,11 @@ uint8_t power_key[3] =
 };
 
 
-//按键配置
-uint8_t stand_key_map[KEYBOARD_MAX_ROW_SIZE][KEYBOARD_MAX_COL_SIZE]=
-{
-    {KEY_POWER,			KEY_UP_ARROW,	KEY_NULL},		//KR0
-    {KEY_RIGHT_ARROW,	KEY_ENTER,		KEY_LEFT_ARROW},//KR1
-    {KEY_NULL,			KEY_DOWN_ARROW,	KEY_NULL},		//KR2
-    {KEY_VOLUME_ADD,	KEY_WWW_BACK, 	KEY_VOLUME_SUB},//KR3
-    {KEY_SET,			KEY_HOME, 		KEY_HOME}, 		//KR4
-};
 
 
-uint8_t gpio_buff_c[KEYBOARD_MAX_COL_SIZE]= {GPIOD_1,GPIOD_2,GPIOD_5}; //p3.1,p3.2,p3.5
-uint8_t gpio_buff_r[KEYBOARD_MAX_ROW_SIZE]= {GPIOB_0,GPIOB_1,GPIOB_2,GPIOB_3,GPIOB_4}; //P1.0,p1.1,p1.2,p1.3,p1.4
+
+uint8_t gpio_buff_c[KEYBOARD_MAX_COL_SIZE]= {GPIOD_4,GPIOD_1,GPIOB_2,GPIOB_1,GPIOB_0}; //p1.0,p1.1,p1.2,p3.1,p3.4 
+uint8_t gpio_buff_r[KEYBOARD_MAX_ROW_SIZE]= {GPIOD_3,GPIOD_2,GPIOD_5,GPIOB_4}; //P33,P32,P35,P14
 
 
 volatile uint32_t sys_flag = 0;
@@ -169,7 +161,8 @@ void key_init(void)
 	//初始化LED
 	gpio_config(BlueLedPort, OUTPUT, PULL_NONE);
 	gpio_set(BlueLedPort, 0);
-	
+	//kai qi zhou qi ding shi qi
+	ke_timer_set(APP_PERIOD_TIMER,TASK_APP,APP_KEYSCAN_DURATION);
 	//注册IO回调
 	gpio_cb_register(app_gpio_int_cb);
 	
@@ -231,6 +224,7 @@ void key_scan(void)
         gpio_config(gpio_buff_r[rw], OUTPUT, PULL_NONE); 
 		gpio_set(gpio_buff_r[rw], 0);
         delay_us(50);
+			
         for(cw = 0; cw < KEYBOARD_MAX_COL_SIZE; cw++)
         {
 			if(0 == gpio_get_input(gpio_buff_c[cw]))
@@ -264,7 +258,7 @@ void key_scan(void)
             }
             if( real_key_value[cw]&(1<<rw))
             {
-                stan_key[stan_key_len]=stand_key_map[rw][cw];
+                //stan_key[stan_key_len]=stand_key_map[rw][cw];
                 row[rw]++;
                 cow[cw]++;
                 if(stan_key_len<8)
@@ -954,7 +948,7 @@ static void app_gpio_int_cb(void)
 	key_wakeup_set();
 
 	//restart adv
-	ke_msg_send_basic(APP_ADV_ENABLE_TIMER,TASK_APP,TASK_APP);
+	//ke_msg_send_basic(APP_ADV_ENABLE_TIMER,TASK_APP,TASK_APP);
 
 	//enable period timer
 	if(!ke_timer_active(APP_PERIOD_TIMER, TASK_APP))

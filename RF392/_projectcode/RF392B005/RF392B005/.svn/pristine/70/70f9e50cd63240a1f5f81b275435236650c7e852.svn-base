@@ -1,0 +1,876 @@
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE LT8920
+OBJECT MODULE PLACED IN .\app_code\LT8920.OBJ
+COMPILER INVOKED BY: d:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\keil_8051\9.60\BIN\C51.exe E:\jim\project\A
+                    -2021\CDWorkingroom1\RF392\_projectcode\RF392B005\RF392B005\rf392B005_v01\app_code\LT8920.c OMF2 SMALL DEBUG OBJECTEXTEND
+                    - ROM(LARGE) WARNINGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(DEBUG=1,SILABS_STARTUP=1) INTVECTOR(0X0000) INTPROMOT
+                    -E INCDIR(E:\jim\project\A2021\CDWorkingroom1\RF392\_projectcode\RF392B005\RF392B005\rf392B005_v01\inc;E:\jim\project\A20
+                    -21\CDWorkingroom1\RF392\_projectcode\RF392B005\RF392B005\rf392B005_v01\inc\config;E:\jim\project\A2021\CDWorkingroom1\RF
+                    -392\_projectcode\RF392B005\RF392B005\rf392B005_v01\app_code;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.
+                    -0//Lib/efm8_capsense;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/efm8_capsense/device_
+                    -layer;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/shared/si8051Base;D:/SiliconLabs/SimplicityS
+                    -tudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/inc) PRINT(.\app_code\LT8920.lst) COND PAGEWIDTH(120) PAGELENGTH(65)
+                    - OBJECT(.\app_code\LT8920.OBJ)
+
+line level    source
+
+   1          
+   2          //#include "gpio.h"
+   3          #include "board_efm8sb.h"
+   4          #include "lt8920.h"
+   5          //extern stc_gpio_cfg_t lt8920_outCfg;
+   6          
+   7          #define _nop() NOP()
+   8          /*
+   9          ********************************
+  10          spiss ---pa7
+  11          spiclk----pd4
+  12          pkt ----no connect
+  13          mosi----pd0
+  14          miso-----pd1
+  15          reset----pa1
+  16          *******************************
+  17          */
+  18          #define PACKLOADLEN 19
+  19          #define WRITEFIFOLEN PACKLOADLEN + 2
+  20          #define SPI_SS_H { LT8920_SPISS_PIN = 1;}//p14
+  21          #define SPI_SS_L { LT8920_SPISS_PIN = 0;}
+  22          #define LTRESET_H { LT8920_RESET_PIN = 1;}
+  23          #define LTRESET_L {LT8920_RESET_PIN = 0;}
+  24          
+  25          #define SPI_CLK_H {LT8920_SPICLK_PIN = 1;}
+  26          #define SPI_CLK_L {LT8920_SPICLK_PIN = 0;}
+  27          
+  28          #define MOSI_H {LT8920_MOSI_PIN = 1;}
+  29          #define MOSI_L {LT8920_MOSI_PIN = 0;}
+  30          //#define MOSI  _pd0
+  31          #define MISO  P1_B2
+  32          
+  33          #define SETRST_OUT {LT8920_RESET_PIN = 0;}
+  34          #define SETMOSI_OUT {LT8920_MOSI_PIN = 0;}
+  35          #define SETSCK_OUT {LT8920_SPICLK_PIN = 0;}
+  36          #define SETMISO_IN //{_nop();_pdpu1 =1; _pdc1 = 1; }
+  37          #define SETMISO_OUT {LT8920_MISO_PIN = 1;}
+  38          #define SPI_SS_OUT { LT8920_SPISS_PIN = 0;}
+  39          
+  40          /*hlink-��ַ����ʱ��3��ַ�̶�Ϊһ��ֵ�������ֽ�ʵ���ۼ�
+             -�*/
+  41          //char xdata LED_Data[50] _at_ 0x8000;
+  42          #ifdef USERDEBUGID
+              const unsigned char itykaddr0 __attribute__ ((at(0xBF8))) = 19;
+              const unsigned char itykaddr1 __attribute__ ((at(0xBF9))) = 0;
+              const unsigned char itykaddr2 __attribute__ ((at(0xBFA))) = 0;
+              const unsigned char itykaddr3 __attribute__ ((at(0xBFB))) = 0xb1;
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 2   
+
+              
+              unsigned char itykaddr0 = 0;
+              unsigned char itykaddr1 = 0;
+              unsigned char itykaddr2 = 0;
+              unsigned char itykaddr3 = 0 ;
+               
+              #else
+  54          // volatile unsigned char itykaddr0 = 0;
+  55          // volatile unsigned char itykaddr1 = 0;
+  56          // volatile unsigned char itykaddr2 = 0;
+  57          // volatile unsigned char itykaddr3 = 0 ;
+  58          
+  59            //unsigned char code itykaddr0  _at_ 0x8000;
+  60                  //      int variable1[100] __attribute__((at(0x00030))); 0x0000_4000
+  61          //unsigned char itykaddr[4] __attribute__((section(".ARM.__at_0x00003FF0"))) = {1,2,3,4};
+  62          unsigned char code itykaddr[4] _at_ 0x1FFA;
+  63          //unsigned char itykaddr1 __attribute__((section(".ARM.__at_0x00003FF1"))) = 0x00;
+  64          #define itykaddr0 itykaddr[0] 
+  65          #define itykaddr1 itykaddr[1] 
+  66          #define itykaddr2 itykaddr[2]
+  67          #define itykaddr3 itykaddr[3]
+  68          #endif
+  69          
+  70          
+  71          const unsigned char code it8920regarry[][3]={
+  72          
+  73          
+  74          { 0, 0x6f, 0xe0 },
+  75          { 1, 0x56, 0x81 },
+  76          {2, 0x66, 0x17},
+  77          {4, 0x9c, 0xc9 },
+  78          {5, 0x66, 0x37},
+  79          {7, 0x00, 0x00},
+  80          {8, 0x6c, 0x90},
+  81          {9, 0x48, 0x00 },
+  82          {10, 0x7f, 0xfd},
+  83          {11, 0x00, 0x08},
+  84          {12, 0x00, 0x00 },
+  85          {13, 0x48, 0xbd},
+  86          {22, 0x00, 0xff},
+  87          {23, 0x80, 0x05},
+  88          {24, 0x00, 0x67},
+  89          {25, 0x16, 0x59},
+  90          {26, 0x19, 0xe0},
+  91          {27, 0x13, 0x00},
+  92          {28, 0x18, 0x00},
+  93          {32, 0x48, 0x00 },
+  94          {33, 0x3f, 0xc7},
+  95          {34, 0x20, 0x00},
+  96          {35, 0x03, 0x00},//repeat 9- 03 00 ->-0a 20
+  97          {36, 0x05, 0x0a},
+  98          {37, 0x03, 0x80},
+  99          {38, 0x5a, 0x5a},
+ 100          {39, 0x55, 0xaa},
+ 101          {40, 0x44, 0x02},//01---02
+ 102          {41, 0xb8, 0x00},//pkt high active
+ 103          {42, 0xfd, 0xb0},
+ 104          {43, 0x00, 0x0f },
+ 105          {44, 0x01, 0x00 },
+ 106          {45, 0x01, 0x52},
+ 107          
+ 108          
+ 109          };
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 3   
+
+ 110          
+ 111          
+ 112          
+ 113          
+ 114          const unsigned char code it8920rftstarry[][3]={
+ 115          {7, 0x00, 0x00 },
+ 116          {32, 0x18, 0x07 },
+ 117          {34, 0x83, 0x0b},
+ 118          {11, 0x80, 0x08 },
+ 119          {7, 0x01, 0x30 },//2.45g
+ 120          };
+ 121          
+ 122          const unsigned char code it8920realdytxdata[][3]={
+ 123          {41, 0xb8, 0x00},//crc on  fix leng pkt high active
+ 124          {52, 0x80, 0x80},//clr tx fifo and rx fifo pointer
+ 125          };
+ 126          
+ 127          const unsigned char code it8920sleepdata[][3]={
+ 128          {35, 0x45, 0x00},//f->repeat data 00---20
+ 129          };
+ 130          
+ 131          const unsigned char code it8920compttx[][3]={
+ 132          {41, 0xb0, 0x00},//f->repeat data 00---20
+ 133          };
+ 134          
+ 135          const unsigned char code it8920realdyrxdata[][3]={
+ 136          {52, 0x80, 0x80},//clr tx fifo and rx fifo pointer
+ 137          
+ 138          };
+ 139          
+ 140          //unsigned  int xdata itcounter = 0;
+ 141          unsigned  char xdata it8920reg = 0;
+ 142          unsigned  char xdata reghighvalue = 0;
+ 143          unsigned  char xdata reglowvalue = 0;
+ 144          volatile unsigned  char xdata spicount = 0;
+ 145          unsigned  char xdata regIndex= 0;
+ 146          unsigned  char xdata RegH;
+ 147          unsigned  char xdata RegL;              //Used to store the Registor Value which is read.
+ 148          
+ 149          
+ 150          unsigned  char  rftxdataarry[PACKLOADLEN]={0};
+ 151          unsigned  char xdata itmosivalue = 0;
+ 152          unsigned char xdata lastrffifo[WRITEFIFOLEN]={0};
+ 153          
+ 154          
+ 155          
+ 156          unsigned int xdata ittranscounter = 0;
+ 157          unsigned char xdata rfmsgarry[2]= {0};
+ 158          
+ 159          extern unsigned int xdata keypaizangrlstimer;
+ 160          //-------------------
+ 161          //unsigned char  eeprom_Read(void);
+ 162          //extern volatile unsigned char EE_read_addr;
+ 163          //--------------------
+ 164          
+ 165          //static volatile unsigned char rftxdatadstarry[PACKLOADLEN];
+ 166          //static volatile unsigned char rfrxdatadstarry[PACKLOADLEN];
+ 167          /*****************************************/
+ 168          // SPI Write and Read ,as well as Read8  // 
+ 169          /*****************************************/
+ 170          void SPI_WriteReg(unsigned char regval, unsigned char hval,unsigned char lval)
+ 171          {
+ 172   1      
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 4   
+
+ 173   1        //SETMISO_IN;
+ 174   1        //SETMISO_OUT;
+ 175   1        volatile unsigned char regarry[3];
+ 176   1        volatile unsigned char mosival,i,j;
+ 177   1        regarry[0] = regval;
+ 178   1        regarry[1] = hval;
+ 179   1        regarry[2] = lval;
+ 180   1        delay1ms(1);
+ 181   1        SETSCK_OUT;
+ 182   1        SPI_SS_OUT ;
+ 183   1      
+ 184   1        for(j=0;j<3;j++)
+ 185   1          {
+ 186   2            mosival = regarry[j];
+ 187   2            for(i= 0; i < 8; i++)
+ 188   2            //for(spicount= 0; spicount < 8; spicount++)
+ 189   2            {
+ 190   3              //MOSI = addr & 0x80;
+ 191   3              if(mosival & 0x80)
+ 192   3              {
+ 193   4                //MOSI = 1;
+ 194   4                MOSI_H;
+ 195   4              }
+ 196   3              else
+ 197   3              {
+ 198   4                //MOSI = 0;
+ 199   4                MOSI_L;
+ 200   4              }
+ 201   3              app_delay10us(3);
+ 202   3              SPI_CLK_H ;                       //capturing at the down side.
+ 203   3              app_delay10us(3);
+ 204   3              SPI_CLK_L ;
+ 205   3              mosival = mosival << 1;                    //There is no Delay here. determines the rate of SPI.
+ 206   3            }
+ 207   2          }
+ 208   1      
+ 209   1        SPI_SS_H;
+ 210   1        app_delay10us(2);
+ 211   1      
+ 212   1      }
+ 213          
+ 214          #ifdef SPI_OLDFIFO
+              void SPI_WriteReg(void)
+              {
+                      //SETMISO_IN;
+                      //SETMISO_OUT;
+                      SETSCK_OUT;
+                 SETMOSI_OUT;
+                      SPI_SS_OUT ;
+              
+                      for(spicount= 0; spicount < 8; spicount++)
+                      {
+                              //MOSI = addr & 0x80;
+                              if(it8920reg & 0x80)
+                              {
+                                      //MOSI = 1;
+                                      MOSI_H;
+                              }
+                              else
+                              {
+                                      //MOSI = 0;
+                                      MOSI_L;
+                              }
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 5   
+
+              
+                              SPI_CLK_H ;                       //capturing at the down side.
+                              SPI_CLK_L ;
+              
+                              it8920reg = it8920reg << 1;                    //There is no Delay here. determines the rate of SPI.
+                      }
+              
+                      for(spicount= 0; spicount < 8; spicount++)                 //Write H
+                      {
+                              
+                              //MOSI = H & 0x80;
+                              if( reghighvalue & 0x80)
+                              {
+                                      //MOSI = 1;
+                                      MOSI_H;
+                              }
+                              else
+                              {
+                                      //MOSI = 0;
+                                      MOSI_L;
+                              }
+                              
+                              SPI_CLK_H ;                       //capturing at the down side.
+                              SPI_CLK_L ;
+              
+                              reghighvalue = reghighvalue << 1;
+                      }
+              
+                      for(spicount = 0; spicount < 8; spicount++)                 //Write L
+                      {  
+                              //MOSI = L & 0x80;
+                      if(reglowvalue & 0x80)
+                              {
+                                      //MOSI = 1;
+                                      MOSI_H;
+                              }
+                              else
+                              {
+                                      //MOSI = 0;
+                                      MOSI_L;
+                              }
+                              SPI_CLK_H ;                      
+                              SPI_CLK_L ;
+              
+                              reglowvalue = reglowvalue << 1;
+                      }
+              
+                      //-SPI_SS_H;
+              }
+              #endif
+ 286          
+ 287          void SPI_WriteFifo(void)
+ 288          {
+ 289   1      
+ 290   1        unsigned char i ,j;
+ 291   1        lastrffifo[0]=50;
+ 292   1        lastrffifo[1]=PACKLOADLEN;
+ 293   1        for(i=2,j=0;j<PACKLOADLEN;i++,j++)
+ 294   1          {
+ 295   2            lastrffifo[i] = rftxdataarry[j];
+ 296   2          }
+ 297   1        delay1ms(1);
+ 298   1        SETSCK_OUT;
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 6   
+
+ 299   1         //SETMOSI_OUT;
+ 300   1        SPI_SS_OUT ;
+ 301   1        /*write data*/
+ 302   1       // for(regIndex = 0 ; regIndex < PACKLOADLEN; regIndex++)
+ 303   1        for(i=0;i<WRITEFIFOLEN;i++)
+ 304   1        {
+ 305   2          itmosivalue = lastrffifo[i];
+ 306   2          for(j= 0; j < 8; j++)
+ 307   2          {
+ 308   3            if(itmosivalue & 0x80)
+ 309   3            {
+ 310   4              //MOSI = 1;
+ 311   4              MOSI_H;
+ 312   4            }
+ 313   3            else
+ 314   3            {
+ 315   4              //MOSI = 0;
+ 316   4              MOSI_L;
+ 317   4            }
+ 318   3            app_delay10us(3);
+ 319   3            SPI_CLK_H ;                       //capturing at the down side.
+ 320   3            app_delay10us(3);
+ 321   3            SPI_CLK_L ;
+ 322   3      
+ 323   3            itmosivalue = itmosivalue << 1;                    //There is no Delay here. determines the rate of 
+             -SPI.
+ 324   3          }
+ 325   2        }
+ 326   1      
+ 327   1        SPI_SS_H;
+ 328   1        app_delay10us(2);
+ 329   1      
+ 330   1      }
+ 331          
+ 332          void SPI_ReadReg(unsigned char ltreg)
+ 333          {
+ 334   1        unsigned char tmpreg,i;
+ 335   1        unsigned char tmpdataH = 0,tmpdataL = 0;
+ 336   1        //SETMISO_IN;
+ 337   1      SETSCK_OUT;
+ 338   1       //SETMOSI_OUT;
+ 339   1      SPI_SS_OUT ;
+ 340   1        tmpreg = ltreg | 0x80;
+ 341   1      
+ 342   1        for(i = 0; i < 8; i++)
+ 343   1        {
+ 344   2          //MOSI = addr & 0x80;
+ 345   2              if(tmpreg & 0x80)
+ 346   2          {
+ 347   3           // MOSI = 1;
+ 348   3                  MOSI_H;
+ 349   3          }
+ 350   2          else
+ 351   2          {
+ 352   3            //MOSI = 0;
+ 353   3              MOSI_L;
+ 354   3          }
+ 355   2      
+ 356   2              app_delay10us(1);
+ 357   2          SPI_CLK_H ;
+ 358   2          app_delay10us(1);
+ 359   2          SPI_CLK_L ;
+ 360   2      
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 7   
+
+ 361   2          tmpreg = tmpreg << 1;                      //Move one bit to the left.
+ 362   2        }
+ 363   1        app_delay10us(1);
+ 364   1        for(i = 0; i < 8; i++)
+ 365   1        {
+ 366   2          SPI_CLK_H ;
+ 367   2          app_delay10us(1);
+ 368   2          SPI_CLK_L ;
+ 369   2          app_delay10us(1);
+ 370   2          tmpdataH = tmpdataH << 1;
+ 371   2          if(MISO)
+ 372   2          {
+ 373   3              tmpdataH |= 1;
+ 374   3          }
+ 375   2             else
+ 376   2           {
+ 377   3                 tmpdataH &= 0xfe;
+ 378   3           }
+ 379   2      
+ 380   2        }
+ 381   1        RegH = tmpdataH;
+ 382   1        app_delay10us(1);
+ 383   1        for(i= 0; i < 8; i++)
+ 384   1        {
+ 385   2          SPI_CLK_H ;
+ 386   2          app_delay10us(1);
+ 387   2          SPI_CLK_L ;
+ 388   2          app_delay10us(1);
+ 389   2          tmpdataL = tmpdataL << 1;
+ 390   2          if(MISO)
+ 391   2          {
+ 392   3              tmpdataL |= 1;
+ 393   3          }
+ 394   2             else
+ 395   2           {
+ 396   3                 tmpdataL &= 0xfe;
+ 397   3           }
+ 398   2      
+ 399   2          //RegL |= MISO;
+ 400   2        }
+ 401   1        RegL =tmpdataL;
+ 402   1        SPI_SS_H;
+ 403   1      }
+ 404          #ifdef SPI_OLDFIFO
+              void SPI_ReadReg(void)
+              {
+                  SETMISO_IN;
+                SETSCK_OUT;
+                 SETMOSI_OUT;
+                SPI_SS_OUT ;
+                //SPI_SS = 0;
+                it8920reg += 0x80;                    //when reading a Register,the Address should be added with 0x80.
+              
+                for(spicount = 0; spicount < 8; spicount++)
+                {
+                  //MOSI = addr & 0x80;
+                      if(it8920reg & 0x80)
+                  {
+                    MOSI = 1;
+                  }
+                  else
+                  {
+                    MOSI = 0;
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 8   
+
+                  }
+                  SPI_CLK_H ;
+                  SPI_CLK_L ;
+              
+                  it8920reg = it8920reg << 1;                      //Move one bit to the left.
+                }
+              
+                for(spicount = 0; spicount < 8; spicount++)
+                {
+                  SPI_CLK_H ;
+                  SPI_CLK_L ;
+              
+                  RegH = RegH << 1;
+                  if(MISO)
+                  {
+                    RegH |= 1;
+                  }
+                     else
+                   {
+                     RegH &= 0xfe;
+                   }
+              
+                }
+              
+              
+              
+                for(spicount= 0; spicount < 8; spicount++)
+                {
+                  SPI_CLK_H ;
+                  SPI_CLK_L ;
+              
+                  RegL = RegL << 1;
+                  if(MISO)
+                  {
+                    RegL |= 1;
+                  }
+                     else
+                   {
+                     RegL &= 0xfe;
+                   }
+              
+                  //RegL |= MISO;
+                }
+              
+                SPI_SS_H;
+              }
+              #endif
+ 471                  
+ 472          #ifdef SPI_OLDFIFO
+              /*write fifo*/
+              void SPI_WriteFifo(void)
+              {
+              
+                      //SETMISO_IN;
+                      //SETMISO_OUT;
+                      SETSCK_OUT;
+                 //SETMOSI_OUT;
+                      SPI_SS_OUT ;
+                  it8920reg = 50;
+                      for(spicount= 0; spicount < 8; spicount++)
+                      {
+                              //MOSI = addr & 0x80;
+                              if(it8920reg & 0x80)
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 9   
+
+                              {
+                                      //MOSI = 1;
+                                      MOSI_H;
+                              }
+                              else
+                              {
+                                      //MOSI = 0;
+                                      MOSI_L;
+                              }
+              
+                              SPI_CLK_H ;                       //capturing at the down side.
+                              _nop();
+                              SPI_CLK_L ;
+              
+                              it8920reg = it8920reg << 1;                    //There is no Delay here. determines the rate of SPI.
+                      }
+                      /*write leng*/
+                      itmosivalue = PACKLOADLEN;
+                      for(spicount= 0; spicount < 8; spicount++)
+                      {
+                              if(itmosivalue & 0x80)
+                              {
+                                      //MOSI = 1;
+                                      MOSI_H;
+                              }
+                              else
+                              {
+                                      //MOSI = 0;
+                                      MOSI_L;
+                              }
+              
+                              SPI_CLK_H ;                       //capturing at the down side.
+                              _nop();
+                              SPI_CLK_L ;
+              
+                              itmosivalue = itmosivalue << 1;                    //There is no Delay here. determines the rate of SPI.
+                      }
+                      /*write data*/
+                      for(regIndex = 0 ; regIndex < PACKLOADLEN; regIndex++)
+                      {
+                              itmosivalue = rftxdataarry[regIndex];
+                              for(spicount= 0; spicount < 8; spicount++)
+                              {
+                                      if(itmosivalue & 0x80)
+                                      {
+                                              //MOSI = 1;
+                                              MOSI_H;
+                                      }
+                                      else
+                                      {
+                                              //MOSI = 0;
+                                              MOSI_L;
+                                      }
+              
+                                      SPI_CLK_H ;                       //capturing at the down side.
+                                      _nop();
+                                      SPI_CLK_L ;
+              
+                                      itmosivalue = itmosivalue << 1;                    //There is no Delay here. determines the rate of SPI
+             -.
+                              }
+                      }       
+                      
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 10  
+
+                      SPI_SS_H;       
+              
+              }
+              #endif
+ 553          /**/
+ 554          void LT8900_Reset(void)
+ 555          {
+ 556   1      
+ 557   1              //SETRST_OUT;
+ 558   1                      LTRESET_L;
+ 559   1      //        _emi = 0;
+ 560   1      //       itcounter = 0;
+ 561   1      //       _emi = 1;
+ 562   1      //       do{_nop();}while(itcounter==0);
+ 563   1               delay1ms(10);//10ms
+ 564   1      //        _emi = 0;
+ 565   1      //       itcounter = 0;
+ 566   1      //       _emi = 1;
+ 567   1      LTRESET_H
+ 568   1              
+ 569   1       //do{_nop();}while(itcounter==0);      
+ 570   1      delay1ms(10);//10ms
+ 571   1      
+ 572   1      
+ 573   1      
+ 574   1      
+ 575   1      }
+ 576          
+ 577          void LT8900Reg_Init(void)
+ 578          {
+ 579   1      
+ 580   1       for(regIndex = 0 ; regIndex < sizeof(it8920regarry)/3; regIndex++)
+ 581   1       {
+ 582   2      //it8920reg = it8920regarry[regIndex][0];
+ 583   2      //reghighvalue = it8920regarry[regIndex][1];
+ 584   2      //reglowvalue = it8920regarry[regIndex][2];
+ 585   2      //SPI_WriteReg();
+ 586   2       SPI_WriteReg(it8920regarry[regIndex][0], it8920regarry[regIndex][1],it8920regarry[regIndex][2]);
+ 587   2       }
+ 588   1               // it8920reg = 4;
+ 589   1                      // SPI_ReadReg();
+ 590   1              // if ((RegH==0x9c) && (RegL==0xc9))
+ 591   1              // {
+ 592   1                      // _nop();
+ 593   1              // }
+ 594   1              
+ 595   1               // it8920reg = 26;
+ 596   1                      // SPI_ReadReg();
+ 597   1               // it8920reg = 27;
+ 598   1                      // SPI_ReadReg();
+ 599   1               // it8920reg = 23;
+ 600   1                      // SPI_ReadReg();               
+ 601   1      
+ 602   1      }
+ 603           void It8920_ResetFifo(void)
+ 604           {
+ 605   1      
+ 606   1              //it8920reg = 52;
+ 607   1              //reghighvalue =0x80;
+ 608   1              //reglowvalue = 0x80;
+ 609   1              //SPI_WriteReg();
+ 610   1              SPI_WriteReg(52,0x80,0x80);
+ 611   1      
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 11  
+
+ 612   1       }
+ 613           
+ 614           void It8920_Idle(void)
+ 615          {
+ 616   1      
+ 617   1                      // SPI_SS_L ;
+ 618   1              // _emi = 0;
+ 619   1               // itcounter = 0;
+ 620   1               // _emi = 1;
+ 621   1          // do
+ 622   1              // {
+ 623   1                 // _clrwdt();
+ 624   1              // _clrwdt2();
+ 625   1              // _clrwdt1();          
+ 626   1              // }while(itcounter<=1);
+ 627   1              // SPI_SS_H;
+ 628   1              //it8920reg = 7;
+ 629   1              //reghighvalue =0;
+ 630   1              //reglowvalue = 0;
+ 631   1              //SPI_WriteReg();
+ 632   1              SPI_WriteReg(7,0,0);
+ 633   1      
+ 634   1      
+ 635   1      }
+ 636          
+ 637                   // it8920reg = 4;
+ 638                          // SPI_ReadReg();
+ 639                  // if ((RegH==0x9c) && (RegL==0xc9))
+ 640                  // {
+ 641                          // _nop();
+ 642                  // }
+ 643                  
+ 644          
+ 645          
+ 646          void LT8900rf_test(void)
+ 647          {
+ 648   1      
+ 649   1               for(regIndex = 0 ; regIndex < sizeof(it8920rftstarry)/3; regIndex++)
+ 650   1               {
+ 651   2              //it8920reg = it8920rftstarry[regIndex][0];
+ 652   2              //reghighvalue = it8920rftstarry[regIndex][1];
+ 653   2              //reglowvalue = it8920rftstarry[regIndex][2];
+ 654   2              //SPI_WriteReg();
+ 655   2               SPI_WriteReg(it8920rftstarry[regIndex][0],it8920rftstarry[regIndex][1],it8920rftstarry[regIndex][2]);
+ 656   2               }
+ 657   1      
+ 658   1      }
+ 659          
+ 660          void It8920_EnterRx(void)
+ 661          {
+ 662   1      
+ 663   1              //it8920reg = 7;
+ 664   1              //reghighvalue = 0x00;//
+ 665   1              //reglowvalue = 0xca;// rx 2.476Ghz
+ 666   1              //SPI_WriteReg();
+ 667   1              SPI_WriteReg(7,0,0xca);
+ 668   1      
+ 669   1      }
+ 670          
+ 671          void It892_EnterTx(void)
+ 672          {
+ 673   1      
+ 674   1      
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 12  
+
+ 675   1              //it8920reg = 7;
+ 676   1              //reghighvalue = 0x01;//tx
+ 677   1              //reglowvalue = 0x4a;//2.476Ghz
+ 678   1      //SPI_WriteReg();
+ 679   1        SPI_WriteReg(7,0x01,0x4a);
+ 680   1      
+ 681   1      }                                          
+ 682          void LT8900_txdata(void)
+ 683          {
+ 684   1      
+ 685   1              /*_emi = 0;
+ 686   1               itcounter = 0;
+ 687   1               _emi = 1;
+ 688   1          do
+ 689   1              {
+ 690   1                 _clrwdt();
+ 691   1              _clrwdt2();
+ 692   1              _clrwdt1();             
+ 693   1              }while(itcounter==0);*/
+ 694   1              
+ 695   1              /*for(regIndex = 1; regIndex < 100; regIndex++)//50
+ 696   1              {
+ 697   1                      _nop();
+ 698   1              }*/
+ 699   1        delay1ms(10);
+ 700   1      
+ 701   1      }
+ 702          
+ 703          
+ 704          
+ 705          extern unsigned char xdata keyvalue ;
+ 706          void It8920_filldata(void)
+ 707          {
+ 708   1      
+ 709   1              #ifdef USERDEBUGID
+                      rftxdataarry[0] = itykaddr3;    //type
+                      rftxdataarry[1] = itykaddr0;    
+                      rftxdataarry[2] = itykaddr1;
+                      rftxdataarry[3] = itykaddr2;    
+                      #else
+ 715   1      //      EE_read_addr = 0;
+ 716   1      //      itykaddr0 = eeprom_Read();
+ 717   1      //      EE_read_addr = 1;
+ 718   1      //      itykaddr1 = eeprom_Read();
+ 719   1      //      EE_read_addr = 2;
+ 720   1      //      itykaddr2 = eeprom_Read();
+ 721   1      //      EE_read_addr = 3;
+ 722   1      //      itykaddr3 = eeprom_Read();
+ 723   1              
+ 724   1              if((itykaddr3 == 0xff) && (itykaddr2 == 0xff) && (itykaddr1 == 0xff) && (itykaddr0 == 0xff))
+ 725   1              {
+ 726   2                //itykaddr3 = 0xb1;
+ 727   2                //itykaddr2 = 0x00;
+ 728   2                //itykaddr1 = 0x00;
+ 729   2                //itykaddr0 = 0x00;
+ 730   2                  rftxdataarry[0] = 0x55;  //type
+ 731   2                  rftxdataarry[1] = 0x01;
+ 732   2                  rftxdataarry[2] = 0x01;//1,2,3,4,5,6,7,8
+ 733   2                  rftxdataarry[3] = 0x32;
+ 734   2              }       
+ 735   1              else
+ 736   1                {
+ 737   2              rftxdataarry[0] = itykaddr3;    //type
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 13  
+
+ 738   2              rftxdataarry[1] = itykaddr0;    
+ 739   2              rftxdataarry[2] = itykaddr1;
+ 740   2              rftxdataarry[3] = itykaddr2;    
+ 741   2                }
+ 742   1              #endif  
+ 743   1      
+ 744   1      // rftxdataarry[4] = 0;
+ 745   1      // rftxdataarry[5] = 0; 
+ 746   1      // rftxdataarry[6] = keypaizangrlstimer;
+ 747   1      // rftxdataarry[7] = 0; 
+ 748   1      // rftxdataarry[8] = 0; 
+ 749   1      rftxdataarry[9] =0x13;  //data leng 19
+ 750   1      rftxdataarry[10] = ittranscounter>>8;   //fa song pi ci
+ 751   1      rftxdataarry[11] = ittranscounter;      
+ 752   1      //rftxdataarry[12] = 0x00; 
+ 753   1      //rftxdataarry[13] = 0x57;//hlink       
+ 754   1      rftxdataarry[14] = rfmsgarry[0];//msg   
+ 755   1      rftxdataarry[15] = rfmsgarry[1];                
+ 756   1      rftxdataarry[16] = 0x00;        //      
+ 757   1      rftxdataarry[17] = 0x57; //hlink
+ 758   1      rftxdataarry[18] = keyvalue;//1-
+ 759   1      // rftxdataarry[0] = 0xb2;      
+ 760   1       // rftxdataarry[1] = 0xb2;     
+ 761   1       // rftxdataarry[2] = 0x07;
+ 762   1      // rftxdataarry[3] = 0xaa;              
+ 763   1      // rftxdataarry[4] = 0xbb;      //1CH
+ 764   1      // rftxdataarry[5] = 0x1e;      
+ 765   1      // rftxdataarry[6] = 0x1f;//on
+ 766   1      
+ 767   1      }
+ 768          
+ 769          /*void It8920_encryptdata(void)
+ 770          {
+ 771                  rftxdatadstarry[0] = rftxdataarry[0]^0xbd;
+ 772                  //rftxdatadstarry[1] = rftxdataarry[1]^0xbd;
+ 773                  for(regIndex = 1; regIndex < PACKLOADLEN; regIndex++)
+ 774                  {
+ 775                          rftxdatadstarry[regIndex] = rftxdataarry[regIndex] ^ rftxdatadstarry[regIndex - 1];
+ 776                  }
+ 777                          for(regIndex = 0; regIndex < PACKLOADLEN; regIndex++)
+ 778                  {
+ 779                          rftxdataarry[regIndex] = rftxdatadstarry[regIndex];
+ 780                  }
+ 781          }*/
+ 782          
+ 783          
+ 784          void It8920_Sleep(void)
+ 785          {
+ 786   1      
+ 787   1                      /*go to sleep*/
+ 788   1               for(regIndex = 0 ; regIndex < sizeof(it8920sleepdata)/3; regIndex++)
+ 789   1               {
+ 790   2              //it8920reg = it8920sleepdata[regIndex][0];
+ 791   2              //reghighvalue = it8920sleepdata[regIndex][1];
+ 792   2              //reglowvalue = it8920sleepdata[regIndex][2];
+ 793   2              //SPI_WriteReg();
+ 794   2                   SPI_WriteReg(it8920sleepdata[regIndex][0],it8920sleepdata[regIndex][1],it8920sleepdata[regIndex][2])
+             -;
+ 795   2               }
+ 796   1               //P1_B5 = 1;
+ 797   1      }
+ 798          
+ 799          void user8920_txdata(void)
+C51 COMPILER V9.60.0.0   LT8920                                                            05/12/2021 09:42:54 PAGE 14  
+
+ 800          {
+ 801   1        It8920_Idle();
+ 802   1       It8920_ResetFifo();
+ 803   1       It8920_filldata();
+ 804   1       SPI_WriteFifo();
+ 805   1       It892_EnterTx();
+ 806   1       LT8900_txdata();
+ 807   1       It8920_Idle();
+ 808   1       It8920_Sleep();
+ 809   1      
+ 810   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    860    ----
+   CONSTANT SIZE    =    129    ----
+   XDATA SIZE       =     33    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     19      12
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

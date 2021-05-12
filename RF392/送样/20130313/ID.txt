@@ -1,0 +1,9 @@
+	    rftxdataarry[0] = 0xb1;  //type
+	    rftxdataarry[1] = 0x00;
+	    rftxdataarry[2] = 0x10;
+	    rftxdataarry[3] = 0xb1;
+
+	    rftxdataarry[0] = 0xb1;  //type
+	    rftxdataarry[1] = 0x00;
+	    rftxdataarry[2] = 0x11   ; rftxdataarry[2] = 0x12;0x13 0x14 0x15 0x16
+	    rftxdataarry[3] = 0xb1;

@@ -1,0 +1,239 @@
+C51 COMPILER V9.60.0.0   PWR                                                               04/21/2021 08:25:57 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE PWR
+OBJECT MODULE PLACED IN .\src\pwr.OBJ
+COMPILER INVOKED BY: d:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\keil_8051\9.60\BIN\C51.exe E:\jim\project\A
+                    -2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\src\pwr.c OMF2 SMALL DEBUG OBJECTEXTEND ROM(LARGE) WARNINGLEVEL(2) FL
+                    -OATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(DEBUG=1,SILABS_STARTUP=1) INTVECTOR(0X0000) INTPROMOTE INCDIR(E:\jim\project\A2021\
+                    -RF392\_projectcode\RF392B003\RF392B\rf392_v06\inc;E:\jim\project\A2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\inc
+                    -\config;E:\jim\project\A2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\app_code;D:/SiliconLabs/SimplicityStudio/v5/d
+                    -eveloper/sdks/8051/v4.2.0//Lib/efm8_capsense;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8S
+                    -B1/efm8_capsense/device_layer;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/shared/si8051Base;D:
+                    -/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/inc) PRINT(.\src\pwr.lst) COND PAGEWIDTH(120
+                    -) PAGELENGTH(65) OBJECT(.\src\pwr.OBJ)
+
+line level    source
+
+   1          /******************************************************************************
+   2           * Copyright (c) 2015 by Silicon Laboratories Inc. All rights reserved.
+   3           *
+   4           * http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt
+   5           *****************************************************************************/
+   6          
+   7          #include "pwr.h"
+   8          
+   9          // Mask of all wake source enable bits in PMU0CF (used for writing PMU0CF)
+  10          #define PWR_PMU0CF_WAKE_ENABLES (PWR_CPT0_WF | PWR_PMAT_WF | PWR_RTCA_WF | PWR_RTCF_WF)
+  11          
+  12          // Mask of all wake flags in PMU0CF (used for reading PMU0CF)
+  13          #define PWR_PMU0CF_WAKE_FLAGS (PWR_PMU0CF_WAKE_ENABLES | PWR_RST_WF)
+  14          
+  15          #if (EFM8PDL_PWR_AUTO_PAGE == 1)
+  16          #define SAVE_SFRPAGE uint8_t save_sfrpage = SFRPAGE
+  17          #define RESTORE_SFRPAGE SFRPAGE = save_sfrpage
+  18          #else
+              #define SAVE_SFRPAGE
+              #define RESTORE_SFRPAGE
+              #endif
+  22          
+  23          // Reserve address 0x0000 of XDATA space. On reset or waking from sleep mode, this
+  24          // location may be overwritten with random data (see ref manual).
+  25          SI_LOCATED_VARIABLE_NO_INIT(pwr_reserved, uint8_t, SI_SEG_XDATA, 0x0000);
+  26          
+  27          // Reads and clears all PMU0 wake-up flags.
+  28          uint8_t PWR_readAndClearWakeFlags(void)
+  29          {
+  30   1        uint8_t save_ie, snapshot_pmu0cf, snapshot_pmu0fl;
+  31   1        SAVE_SFRPAGE;
+  32   1        SFRPAGE = 0;
+  33   1      
+  34   1        // Disable interrupts to minimize time between reading and clearing the flags
+  35   1        save_ie = IE;
+  36   1        IE_EA = 0;
+  37   1      
+  38   1        // Snapshot the wake-up source flags, then clear them
+  39   1        snapshot_pmu0fl = PMU0FL;
+  40   1        snapshot_pmu0cf = PMU0CF;
+  41   1        PMU0CF = PMU0CF_CLEAR__ALL_FLAGS;
+  42   1      
+  43   1        // Now restore the interrupt enable
+  44   1        IE = save_ie;
+  45   1        RESTORE_SFRPAGE;
+  46   1      
+  47   1        // Combine the snapshots into one bitmask and return it
+  48   1        snapshot_pmu0cf &= PWR_PMU0CF_WAKE_FLAGS;
+C51 COMPILER V9.60.0.0   PWR                                                               04/21/2021 08:25:57 PAGE 2   
+
+  49   1        snapshot_pmu0cf |= (snapshot_pmu0fl & PMU0FL_CS0WK__BMASK) ? PWR_CS0_WF : 0;
+  50   1        return snapshot_pmu0cf;
+  51   1      }
+  52          
+  53          void PWR_enterIdle(void)
+  54          {
+  55   1        uint8_t save_flscl;
+  56   1        SAVE_SFRPAGE;
+  57   1        SFRPAGE = 0;
+  58   1      
+  59   1        // Select flash one-shot read timing for lowest power (see ref manual)
+  60   1        save_flscl = FLSCL;
+  61   1        FLSCL = FLSCL_BYPASS__ONE_SHOT;
+  62   1      
+  63   1        // Set the IDLE bit followed by a 3-cycle dummy instruction to ensure the 
+  64   1        // CPU wakes under all conditions (see ref manual)
+  65   1        PCON0 |= PCON0_IDLE__IDLE;
+  66   1        PCON0 = PCON0;
+  67   1        
+  68   1        // Restore flash timing
+  69   1        FLSCL = save_flscl;
+  70   1        RESTORE_SFRPAGE;
+  71   1      }
+  72          
+  73          #if (EFM8PDL_PWR_USE_STOP == 1)
+  74          void PWR_enterStop(void)
+  75          {
+  76   1        // No need to service interrupts or save the SFRPAGE since the device 
+  77   1        // will be stopped
+  78   1        IE_EA = 0;
+  79   1        SFRPAGE = 0;
+  80   1        
+  81   1        // Clock source must be HFOSC for lowest power (see ref manual)
+  82   1        // Enable HFOSC then source the system clock from it
+  83   1        REG0CN |= REG0CN_OSCBIAS__ENABLED;
+  84   1        HFO0CN |= HFO0CN_IOSCEN__ENABLED;
+  85   1        while ((HFO0CN & HFO0CN_IFRDY__BMASK) == 0);
+  86   1        CLKSEL = CLKSEL_CLKDIV__SYSCLK_DIV_1 | CLKSEL_CLKSL__HFOSC;
+  87   1        while((CLKSEL & CLKSEL_CLKRDY__BMASK) == 0);
+  88   1      
+  89   1        // Select flash one-shot read timing for lowest power (see ref manual)
+  90   1        FLSCL = FLSCL_BYPASS__ONE_SHOT;
+  91   1      
+  92   1        // Set the STOP bit
+  93   1        PCON0 |= PCON0_STOP__BMASK;
+  94   1        
+  95   1        // NOTE: Reset is required to exit stop mode. Program execution 
+  96   1        // will not continue to this point.
+  97   1      }
+  98          #endif // EFM8PDL_PWR_USE_STOP
+  99          
+ 100          void PWR_enterSuspend(uint8_t flags)
+ 101          {
+ 102   1        uint8_t save_ie, save_clksel, save_flscl;
+ 103   1        SAVE_SFRPAGE;
+ 104   1        SFRPAGE = 0;
+ 105   1      
+ 106   1        // Disable interrupts until the system is awake and restored
+ 107   1        save_ie = IE;
+ 108   1        IE_EA = 0;
+ 109   1      
+ 110   1        // System clock must be HFOSC or LPOSC divided by 1 (see ref manual)
+ 111   1        // Set the system clock to LPOSC / 1
+C51 COMPILER V9.60.0.0   PWR                                                               04/21/2021 08:25:57 PAGE 3   
+
+ 112   1        save_clksel = CLKSEL;
+ 113   1        CLKSEL = CLKSEL_CLKDIV__SYSCLK_DIV_1 | CLKSEL_CLKSL__LPOSC;
+ 114   1        while((CLKSEL & CLKSEL_CLKRDY__BMASK) == 0);
+ 115   1      
+ 116   1        // Select flash one-shot read timing for lowest power (see ref manual)
+ 117   1        save_flscl = FLSCL;
+ 118   1        FLSCL = FLSCL_BYPASS__ONE_SHOT;
+ 119   1      
+ 120   1        // Enter suspend mode with the requested wake sources
+ 121   1        PMU0FL = (flags & PWR_CS0_WF) ? PMU0FL_CS0WK__SET : 0;
+ 122   1        PMU0CF = PMU0CF_SUSPEND__START | (flags & PWR_PMU0CF_WAKE_ENABLES);
+ 123   1      
+ 124   1        // Execution resumes here when the device wakes up ..
+ 125   1        // .. execute four nop's first (see ref manual)
+ 126   1        // .. wait 2 cycles before reading PMU0CF (see ref manual)
+ 127   1        NOP(); NOP(); NOP(); NOP();
+ 128   1      
+ 129   1        // Restore flash read timing first
+ 130   1        FLSCL = save_flscl;
+ 131   1      
+ 132   1      #if (EFM8PDL_PWR_AUTO_RSTWK_DELAY == 1)
+ 133   1        // If reset wake-up flag is set, delay for 15 usec (300 cycles @ 20MHz)
+ 134   1        // Ensures we don't re-enter a low power mode before the device can 
+ 135   1        // respond to a pin reset (see ref manual)
+ 136   1        if (PMU0CF & PWR_RST_WF)
+ 137   1        {
+ 138   2          ACC = 75;
+ 139   2          while (--ACC);  // 4 cycles per loop
+ 140   2        }
+ 141   1      #endif // EFM8PDL_PWR_AUTO_RSTWK_DELAY
+ 142   1      
+ 143   1        // Next restore the system clock source and divider
+ 144   1        CLKSEL = save_clksel;
+ 145   1        while((CLKSEL & CLKSEL_CLKRDY__BMASK) == 0);
+ 146   1      
+ 147   1        // Finally restore the interrupt enable
+ 148   1        IE = save_ie;
+ 149   1        RESTORE_SFRPAGE;
+ 150   1      }
+ 151          
+ 152          void PWR_enterSleep(uint8_t flags)
+ 153          {
+ 154   1        uint8_t save_ie, save_clksel, save_ioscen;
+ 155   1        SAVE_SFRPAGE;
+ 156   1        SFRPAGE = 0;
+ 157   1      
+ 158   1        // Disable interrupts until the system is awake and restored
+ 159   1        save_ie = IE;
+ 160   1        IE_EA = 0;
+ 161   1      
+ 162   1        // System clock must be LPOSC divided by 1 (see ref manual)
+ 163   1        save_clksel = CLKSEL;
+ 164   1        CLKSEL = CLKSEL_CLKDIV__SYSCLK_DIV_1 | CLKSEL_CLKSL__LPOSC;
+ 165   1        while((CLKSEL & CLKSEL_CLKRDY__BMASK) == 0);
+ 166   1      
+ 167   1        // Disable HFOSC0 to avoid lock-up when exiting sleep (see ref manual)
+ 168   1        save_ioscen = HFO0CN & HFO0CN_IOSCEN__BMASK;
+ 169   1        HFO0CN &= ~HFO0CN_IOSCEN__BMASK;
+ 170   1      
+ 171   1        // Enter sleep mode with the requested wake sources
+ 172   1        PMU0FL = 0;
+ 173   1        PMU0CF = PMU0CF_SLEEP__START | (flags & PWR_PMU0CF_WAKE_ENABLES);
+ 174   1      
+C51 COMPILER V9.60.0.0   PWR                                                               04/21/2021 08:25:57 PAGE 4   
+
+ 175   1        // Execution resumes here when the device wakes up ..
+ 176   1        // .. execute four nop's first (see ref manual)
+ 177   1        NOP(); NOP(); NOP(); NOP();
+ 178   1      
+ 179   1      #if (EFM8PDL_PWR_AUTO_RSTWK_DELAY == 1)
+ 180   1        // If reset wake-up flag is set, delay for 15 usec (300 cycles @ 20MHz)
+ 181   1        // Ensures we don't re-enter a low power mode before the device can 
+ 182   1        // respond to a pin reset (see ref manual)
+ 183   1        if (PMU0CF & PWR_RST_WF)
+ 184   1        {
+ 185   2          ACC = 75;
+ 186   2          while (--ACC);  // 4 cycles per loop
+ 187   2        }
+ 188   1      #endif // EFM8PDL_PWR_AUTO_RSTWK_DELAY
+ 189   1      
+ 190   1        // Restore the system clock
+ 191   1        HFO0CN |= save_ioscen;
+ 192   1        CLKSEL = save_clksel;
+ 193   1        while((CLKSEL & CLKSEL_CLKRDY__BMASK) == 0);
+ 194   1      
+ 195   1        // Now restore the interrupt enable
+ 196   1        IE = save_ie;
+ 197   1        RESTORE_SFRPAGE;
+ 198   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    229    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

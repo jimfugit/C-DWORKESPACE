@@ -1,0 +1,1386 @@
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE USER_PROGRAM
+OBJECT MODULE PLACED IN .\app_code\USER_PROGRAM.OBJ
+COMPILER INVOKED BY: d:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\keil_8051\9.60\BIN\C51.exe E:\jim\project\A
+                    -2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\app_code\USER_PROGRAM.c OMF2 SMALL DEBUG OBJECTEXTEND ROM(LARGE) WARN
+                    -INGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(DEBUG=1) INTVECTOR(0X0000) INTPROMOTE INCDIR(E:\jim\project\A2021\RF3
+                    -92\_projectcode\RF392B003\RF392B\rf392_v06\inc;E:\jim\project\A2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\inc\co
+                    -nfig;E:\jim\project\A2021\RF392\_projectcode\RF392B003\RF392B\rf392_v06\app_code;D:/SiliconLabs/SimplicityStudio/v5/deve
+                    -loper/sdks/8051/v4.2.0//Lib/efm8_capsense;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/
+                    -efm8_capsense/device_layer;D:/SiliconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/shared/si8051Base;D:/Si
+                    -liconLabs/SimplicityStudio/v5/developer/sdks/8051/v4.2.0//Device/EFM8SB1/inc) PRINT(.\app_code\USER_PROGRAM.lst) COND PA
+                    -GEWIDTH(120) PAGELENGTH(65) OBJECT(.\app_code\USER_PROGRAM.OBJ)
+
+line level    source
+
+   1          //#include "gpio.h"
+   2          //#include "lpm.h"
+   3          //#include "bt.h"
+   4          //#include "basetimer.h"
+   5          //#include "bt.h"
+   6          //#include "flash.h"
+   7          //#include "touch01_tongtai.h"
+   8          //#include "capsense_power_modes.h"
+   9          #include "cslib_hwconfig.h"
+  10          #include "cslib_config.h"
+  11          #include "cslib.h"
+  12          #include "InitDevice.h"
+  13          #include "lt8920.h"
+  14          #include "USER_PROGRAM.h"
+  15          #include "board_efm8sb.h"
+  16          #include "hgsemi74hc.h"
+  17          #include "absacc.h"
+  18          #include<stdlib.h>
+  19          
+  20          #define SW_FACTORYVER 6
+  21          #define TouchKeyAmount 7
+  22          
+  23          #define CLRLED_LONGPRESS_TIMER 100//50 500ms  37 300ms 58--16
+  24          #define KEYPRESS_RFTX_TIMR 100 //500ms  58--16
+  25          
+  26          extern bit clib_keypressflag;
+  27          #define ANY_KEY_PRESSF clib_keypressflag
+  28          
+  29          
+  30          /*#define LED1TURNON {user_led1_litup();}
+  31          #define LED1TURNOFF {user_led1_litoff();}
+  32          
+  33          
+  34          #define LED2TURNON {user_led2_litup();}
+  35          #define LED2TURNOFF {user_led2_litoff();}
+  36          
+  37          
+  38          
+  39          #define LED3TURNON {user_led3_litup();}//pa2
+  40          #define LED3TURNOFF {user_led3_litoff();}
+  41          
+  42          
+  43          #define LED4TURNON {user_led4_litup();}
+  44          #define LED4TURNOFF {user_led4_litoff();}
+  45          
+  46          
+  47          
+  48          #define LED5TURNON  {user_led5_litup();}
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 2   
+
+  49          #define LED5TURNOFF {user_led5_litoff();}
+  50          
+  51          
+  52          #define LED6TURNON {user_led6_litup();}
+  53          #define LED6TURNOFF {user_led6_litoff();}
+  54          
+  55          #define LED7TURNON {user_led7_litup();}
+  56          #define LED7TURNOFF {user_led7_litoff();}*/
+  57          
+  58          unsigned char xdata keyrawvalue = 0;
+  59           unsigned char xdata keyvalue = 0;
+  60           unsigned char xdata pkeyvalue = 0;
+  61           unsigned char xdata keytempvalue = 0;
+  62           unsigned char xdata lastpkeyvalue = 0;
+  63           unsigned char xdata keycount = 0;
+  64           unsigned int xdata keyledtimer = 0;//8ms
+  65           unsigned int xdata keypairtimer = 0;//
+  66           unsigned int xdata keypresstimer = 0;
+  67           //unsigned int xdata keypaizangrlstimer = 0;
+  68           unsigned char xdata multikeyreset_timer=0;
+  69          //unsigned char tempcount = 0;
+  70           unsigned char xdata K7paircounter = 0;
+  71           unsigned char xdata keyonlyrlstxtimer = 0;
+  72           unsigned char xdata prerlstxtimer = 0;
+  73           unsigned char xdata keyonlyhuanqitimer = 0;
+  74           unsigned char xdata nowledvalue = 0x00;
+  75          //unsigned char preusertmpvalue = 0;
+  76           unsigned char xdata usertmpvalue = 0;
+  77           unsigned char xdata krlsrftxtimer = 0;
+  78           unsigned char xdata STANDBY_TIME = 0x7E;
+  79          unsigned char xdata romd_datatimer = 0;
+  80          unsigned char xdata keylvvalue = 0;
+  81          
+  82           _TKS_FLAGA_type xdata userflag1 = {0};
+  83          #define KtimerstartF            userflag1.bits.b0
+  84          #define KLedtimerstartF         userflag1.bits.b1
+  85          #define KrfittimerstartF                userflag1.bits.b2
+  86          #define KpairtimerstartF                userflag1.bits.b3
+  87          #define KhuanqirlsF          userflag1.bits.b4
+  88          #define usernouse0          userflag1.bits.b5
+  89          #define KonlyrlstxF          userflag1.bits.b6
+  90          #define KmachPtimerF          userflag1.bits.b7
+  91          
+  92           _TKS_FLAGA_type  xdata userflag2 = {0};
+  93          #define KrepeatdataF            userflag2.bits.b0
+  94          #define KsleephaveF             userflag2.bits.b1
+  95          #define KwakupF         userflag2.bits.b2
+  96          #define KzhaomingrlsF           userflag2.bits.b3
+  97          #define KmuyurlsF               userflag2.bits.b4
+  98          #define KjinhuarlsF             userflag2.bits.b5
+  99          #define KganzaorlsF             userflag2.bits.b6
+ 100          #define keypressdownF   userflag2.bits.b7
+ 101          
+ 102          
+ 103           _TKS_FLAGA_type  xdata userflag3 = {0};
+ 104          #define KpairEnterF             userflag3.bits.b0
+ 105          #define KqiruanrlsF             userflag3.bits.b1
+ 106          #define KyijianguanjirlsF               userflag3.bits.b2
+ 107          #define KmultizhaomingF         userflag3.bits.b3
+ 108          #define KmultiwifiRestF         userflag3.bits.b4
+ 109          #define KlonghuanqiF            userflag3.bits.b5
+ 110          #define KmultizhaomingrlsF              userflag3.bits.b6
+ 111          #define KinitRfstartF                   userflag3.bits.b7
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 3   
+
+ 112          
+ 113           _TKS_FLAGA_type  xdata userflag4 = {0};
+ 114          #define K7zhaomingpressF userflag4.bits.b0
+ 115          #define K7zhaomingrelaseF userflag4.bits.b1
+ 116          #define Khavepressflag userflag4.bits.b2
+ 117          #define keymachpressflag  userflag4.bits.b3 
+ 118          #define keymachpresszmflag  userflag4.bits.b4 
+ 119          #define KhuanqirlsPressF    userflag4.bits.b5
+ 120          #define KhuanqiPressStartF    userflag4.bits.b6
+ 121          #define keymachlongfunflag  userflag4.bits.b7
+ 122          
+ 123           _TKS_FLAGA_type  xdata userflag5 = {0};
+ 124          
+ 125          #define ledzhaomingF userflag5.bits.b0
+ 126          #define ledqiruanF userflag5.bits.b1
+ 127          #define ledliangfengF userflag5.bits.b2
+ 128          #define ledyijiguanjiF  userflag5.bits.b3 
+ 129          #define ledganzaoF  userflag5.bits.b4 
+ 130          #define ledmuyuF  userflag5.bits.b5
+ 131          #define ledhuangqiF  userflag5.bits.b6
+ 132          #define ledidicatestartF userflag5.bits.b7
+ 133          
+ 134           _TKS_FLAGA_type xdata userflag6 = {0};
+ 135          #define keyrestscanF userflag6.bits.b0
+ 136          #define lastprekeyF userflag6.bits.b1
+ 137          #define keypaizangrlsF userflag6.bits.b2
+ 138          #define keypaizconF    userflag6.bits.b3
+ 139          
+ 140          
+ 141          unsigned char xdata tempcount = 0;
+ 142          
+ 143          //----------------------
+ 144          // unsigned char xdata keysamecounter = 0;
+ 145           unsigned char xdata keysamerepeatflag = 1;
+ 146           unsigned int xdata keymachtimer = 0;
+ 147          
+ 148           unsigned int xdata keyledidicatetimer= 0;
+ 149          
+ 150           unsigned int xdata app_sleep_counter = 0;
+ 151          //----------------------
+ 152           //extern unsigned  int xdata itcounter;
+ 153          //extern volatile unsigned char txtimercounter ;
+ 154          //extern volatile unsigned int itcounter ;
+ 155          void LT8900_Reset(void);
+ 156          void LT8900Reg_Init(void);
+ 157          void LT8900rf_test(void);
+ 158          void It8920_filldata(void);
+ 159          void LT8900_txdata(void);
+ 160          void It8920_Sleep(void);
+ 161          void It8920_Idle(void);
+ 162           void It8920_ResetFifo(void);
+ 163           void SPI_WriteFifo(void);
+ 164           void It892_EnterTx(void);
+ 165          
+ 166          //--------------
+ 167          
+ 168          extern  unsigned int xdata ittranscounter ;
+ 169          extern unsigned char xdata rfmsgarry[];
+ 170          //-----------------------
+ 171          
+ 172          static void touchkeyHandle(void);
+ 173          //----------------------
+ 174          #define DELAYUSER(a)    delay1ms(a)
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 4   
+
+ 175          #define InitLed() LEDALL_OFF()
+ 176          #define TurnoffallLed() LEDALL_OFF()
+ 177          #define TurnonallLed()  LEDALL_ON();
+ 178          
+ 179          /*
+ 180          **key pa2 is press LED3 lit up and release the key
+ 181          */
+ 182          static void Dqa_testIt8920(void)
+ 183          {
+ 184   1      unsigned int loopcount = 0;
+ 185   1              //if((_pa0==0)&&(_pa2==0))
+ 186   1              if(P2_B7==0)
+ 187   1              {
+ 188   2                 //
+ 189   2                  delay1ms(20);
+ 190   2      
+ 191   2                      //if((_pa0==0)&&(_pa2==0))
+ 192   2                  while(P2_B7==0)
+ 193   2                    {
+ 194   3                      delay1ms(20);
+ 195   3                      loopcount++;
+ 196   3                      if(loopcount >= 300)
+ 197   3                        {
+ 198   4                          return;
+ 199   4                        }
+ 200   3                    };
+ 201   2                      
+ 202   2                      {
+ 203   3                               LT8900rf_test();
+ 204   3                               
+ 205   3                               /*sw version*/ 
+ 206   3                               for(usertmpvalue = 0;usertmpvalue <SW_FACTORYVER;usertmpvalue++)
+ 207   3                               {
+ 208   4                              
+ 209   4                                      //LED5TURNON();
+ 210   4                                 LEDALL_ON();
+ 211   4                                      delay1ms(100);
+ 212   4                                      LEDALL_OFF();
+ 213   4                                      delay1ms(100);
+ 214   4                               }
+ 215   3      
+ 216   3                               //loopcount = 0;
+ 217   3              do{
+ 218   4                  //delay1ms(200);
+ 219   4                  //loopcount++;
+ 220   4              }while(1);
+ 221   3              //}while(loopcount<100);
+ 222   3      
+ 223   3                      }
+ 224   2              }
+ 225   1      
+ 226   1      }
+ 227          
+ 228          void user_rset_scancapcity(void)
+ 229          {
+ 230   1        CSLIB_0_enter_DefaultMode_from_RESET();
+ 231   1        //CSLIB_initLibrary();
+ 232   1        keyrestscanF = 1;
+ 233   1        multikeyreset_timer = 0;
+ 234   1      }
+ 235          
+ 236          void user_rsetlvt1s_fun(void)
+ 237          {
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 5   
+
+ 238   1        if(keyrestscanF )
+ 239   1          {
+ 240   2            if(multikeyreset_timer < 100)//60*8.5=  100*5
+ 241   2              {
+ 242   3            clib_keypressflag = 0;//don't to check key
+ 243   3            keymachpresszmflag = 0;
+ 244   3            KmachPtimerF = 0;
+ 245   3              }
+ 246   2            else
+ 247   2              {
+ 248   3                keyrestscanF = 0;
+ 249   3                multikeyreset_timer = 0;
+ 250   3              }
+ 251   2      
+ 252   2      
+ 253   2          }
+ 254   1      }
+ 255          
+ 256          /*
+ 257          ----------------------------------
+ 258                      *timer0*
+ 259          ----------------------------------
+ 260          */
+ 261          //DEFINE_ISR(INTERRUPTTIMER0,0x20)
+ 262          void user_timer_process(void)
+ 263          {
+ 264   1              if(KtimerstartF)
+ 265   1              {
+ 266   2                      keypresstimer++;
+ 267   2              }
+ 268   1              if(KLedtimerstartF)
+ 269   1              {
+ 270   2                      keyledtimer++;
+ 271   2              }
+ 272   1              if(KpairtimerstartF)
+ 273   1              {
+ 274   2                      keypairtimer++;
+ 275   2              }
+ 276   1              if(KrfittimerstartF)
+ 277   1              {
+ 278   2                      krlsrftxtimer++;
+ 279   2                      //if((krlsrftxtimer%25)==0)
+ 280   2                      if((krlsrftxtimer%15)==0)//16--10
+ 281   2                      {
+ 282   3                              KrepeatdataF = 1;
+ 283   3                      }
+ 284   2              }
+ 285   1              
+ 286   1              if(KonlyrlstxF)
+ 287   1              {
+ 288   2              keyonlyrlstxtimer++;
+ 289   2                      /*if((keyonlyrlstxtimer%2)==0)
+ 290   2                      {
+ 291   2                              keypressdownF = 1;
+ 292   2                      }*/
+ 293   2              
+ 294   2              }
+ 295   1      
+ 296   1              /*if(KhuanqiPressStartF)
+ 297   1              {
+ 298   1               keyonlyhuanqitimer ++ ;        
+ 299   1              }*/
+ 300   1              if(KmachPtimerF)
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 6   
+
+ 301   1              {
+ 302   2               keymachtimer++;        
+ 303   2              }
+ 304   1              
+ 305   1              if(ledidicatestartF)
+ 306   1              {
+ 307   2               keyledidicatetimer++;  
+ 308   2              }
+ 309   1      
+ 310   1        if(keyrestscanF)
+ 311   1          {
+ 312   2            multikeyreset_timer++;
+ 313   2          }
+ 314   1                      //itcounter++;
+ 315   1      }
+ 316          
+ 317          
+ 318          
+ 319          
+ 320          /*
+ 321          ---------------------------
+ 322                   **LED**
+ 323          ---------------------------
+ 324          */
+ 325          
+ 326          
+ 327          /*static void TurnonallLed(void)
+ 328          {
+ 329          
+ 330           //LED1TURNON ;
+ 331          
+ 332          
+ 333           //LED2TURNON ;
+ 334          
+ 335          
+ 336           //LED3TURNON ;
+ 337          
+ 338          
+ 339           //LED4TURNON;
+ 340          
+ 341          
+ 342           //LED5TURNON ;
+ 343          
+ 344          
+ 345           //LED6TURNON ;
+ 346          
+ 347          
+ 348           //LED7TURNON ;
+ 349          
+ 350            user_ledall_turnon();
+ 351          }*/
+ 352          /*static void TurnoffallLed(void)
+ 353          {
+ 354           //LED1TURNOFF ;
+ 355          
+ 356          
+ 357           //LED2TURNOFF ;
+ 358          
+ 359          
+ 360           //LED3TURNOFF ;
+ 361          
+ 362          
+ 363           //LED4TURNOFF;
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 7   
+
+ 364          
+ 365          
+ 366           //LED5TURNOFF ;
+ 367          
+ 368          
+ 369           //LED6TURNOFF ;
+ 370          
+ 371          
+ 372          //LED7TURNOFF ;
+ 373            user_ledall_turnoff();
+ 374          }*/
+ 375          /*static void InitLed(void)
+ 376          {
+ 377          TurnoffallLed();
+ 378          }*/
+ 379          void clrflagledtimer(void)
+ 380          {
+ 381   1              
+ 382   1                                    ledidicatestartF = 0;
+ 383   1                                                        keyledidicatetimer = 0;       
+ 384   1      }
+ 385          
+ 386          unsigned char UpdateSensorStatus(void)
+ 387          {
+ 388   1        //static uint8_t lastActiveSensors = 0xFF;
+ 389   1        uint8_t activeSensors = 0;
+ 390   1        uint8_t i;
+ 391   1      
+ 392   1        // Get the sensor status and convert to
+ 393   1        // a bitmask
+ 394   1        for (i = 0; i < DEF_NUM_SENSORS; i++)
+ 395   1        {
+ 396   2          if (CSLIB_isSensorDebounceActive(i))
+ 397   2          {
+ 398   3            activeSensors |= (1 << i);
+ 399   3          }
+ 400   2        }
+ 401   1      
+ 402   1        // status has changed
+ 403   1        //if (activeSensors != lastActiveSensors)
+ 404   1        //{
+ 405   1          //lastActiveSensors = activeSensors;
+ 406   1        //}
+ 407   1        return(activeSensors);
+ 408   1      }
+ 409          /*void  uservar_init(void)
+ 410          {
+ 411            userflag4.byte = 0;
+ 412            userflag1.byte = 0;
+ 413            userflag2.byte = 0;
+ 414            userflag3.byte = 0;
+ 415            userflag5.byte = 0;
+ 416          }*/
+ 417          void USER_PROGRAM_INITIAL(void)
+ 418          {   
+ 419   1      
+ 420   1              
+ 421   1      
+ 422   1      
+ 423   1        userflag3.byte = 0;
+ 424   1      LT8900_Reset();
+ 425   1      
+ 426   1      LT8900Reg_Init();
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 8   
+
+ 427   1      Dqa_testIt8920();
+ 428   1      //factorytestIt8920();
+ 429   1      //itcounter = 0;
+ 430   1      It8920_Idle();
+ 431   1      
+ 432   1      //SPI_ReadReg(38);
+ 433   1      //SPI_ReadReg(39);
+ 434   1      //It8920_Sleep();
+ 435   1      delay1ms(80);//200ms
+ 436   1      TurnonallLed();
+ 437   1      delay1ms(200);//200ms
+ 438   1      TurnoffallLed();
+ 439   1      
+ 440   1      /*intial to check is key is press*/
+ 441   1      //KLedtimerstartF = 1;
+ 442   1      keyledtimer = 0;
+ 443   1      keylvvalue = 5;
+ 444   1      }
+ 445          //INDICADE_PIN = !INDICADE_PIN;
+ 446          void wakeup_init(void)
+ 447          {
+ 448   1        if(!KwakupF)
+ 449   1          {
+ 450   2        keypairtimer = 0;
+ 451   2        K7paircounter = 0;
+ 452   2        //K7zhaomingrelaseF = 0;
+ 453   2        //KpairEnterF = 0;
+ 454   2            /*intitial variable*/
+ 455   2        userflag4.byte = 0;
+ 456   2        userflag1.byte = 0;
+ 457   2        userflag2.byte = 0;
+ 458   2        userflag3.byte = 0;
+ 459   2        userflag5.byte = 0;
+ 460   2        userflag6.byte = 0;
+ 461   2        keyvalue = 0;
+ 462   2        keylvvalue = 0;
+ 463   2        Khavepressflag = 0;
+ 464   2       KwakupF = 1;
+ 465   2      
+ 466   2       //KinitRfstartF = 0;
+ 467   2       /*to timer count the wakup no keypress time*/
+ 468   2       KLedtimerstartF = 1;
+ 469   2       keyledtimer = 0;
+ 470   2       /**/
+ 471   2       keyonlyrlstxtimer = 0;
+ 472   2      
+ 473   2       //keypaizangrlsF = 0;//clr pai zangrls
+ 474   2       //keypaizangrlstimer = 0;
+ 475   2      
+ 476   2         clrflagledtimer();
+ 477   2          }
+ 478   1      }
+ 479          
+ 480          void user_sleep_fun(void)
+ 481          {
+ 482   1        if(app_sleep_counter>=130)//600ms
+ 483   1          {
+ 484   2      
+ 485   2            if(!KsleephaveF)
+ 486   2            {
+ 487   3               /*LT8900_Reset();
+ 488   3               LT8900Reg_Init();*/
+ 489   3              //It8920_Idle();
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 9   
+
+ 490   3             It8920_Sleep();
+ 491   3             KsleephaveF = 1;
+ 492   3             /*sleep dont to check the timer*/
+ 493   3                KLedtimerstartF = 0;
+ 494   3              keyledtimer = 0;
+ 495   3              keylvvalue = 0;
+ 496   3              clrflagledtimer();
+ 497   3              //INDICADE_PIN = 1;//2.8s
+ 498   3            }
+ 499   2            InitLed();
+ 500   2            KwakupF = 0;
+ 501   2           // LT8920_SPISS_PIN = 1;
+ 502   2          }
+ 503   1      }
+ 504          
+ 505          //#define user_touch_counter DBYTE 0x45
+ 506          //==============================================
+ 507          //**********************************************
+ 508          //==============================================
+ 509          void USER_PROGRAM(void)
+ 510          {
+ 511   1      
+ 512   1          wakeup_init();
+ 513   1          user_sleep_fun();
+ 514   1          //user_rsetlvt1s_fun();
+ 515   1                      if( ANY_KEY_PRESSF )
+ 516   1                      {       
+ 517   2                              /*to have the key start dont to check the STANDBY_TIME*/
+ 518   2      
+ 519   2                              KLedtimerstartF = 0;
+ 520   2                              keyledtimer = 0;
+ 521   2                              KsleephaveF = 0;
+ 522   2                        prerlstxtimer = 0;
+ 523   2                              keyvalue = UpdateSensorStatus();
+ 524   2                              keycount = getpresskeycount();
+ 525   2                              if((keycount<3) && (keyvalue !=0x08))
+ 526   2                                {
+ 527   3                /*the key press fisrt time to set up the rf*/
+ 528   3                if(!KinitRfstartF & Khavepressflag)
+ 529   3                {
+ 530   4                  KinitRfstartF = 1;
+ 531   4                        LT8900_Reset();
+ 532   4                      LT8900Reg_Init();
+ 533   4                      //keycount = getpresskeycount();
+ 534   4      
+ 535   4      
+ 536   4                     // return;
+ 537   4                }
+ 538   3                if(!Khavepressflag)
+ 539   3                  {
+ 540   4                Khavepressflag = 1;
+ 541   4                return;
+ 542   4                  }
+ 543   3                                }
+ 544   2                              //Khavepressflag = 1;
+ 545   2                                                       /*key change*/
+ 546   2                                       if(keyvalue != pkeyvalue)
+ 547   2                                       {
+ 548   3                                           lastpkeyvalue = pkeyvalue;
+ 549   3                  pkeyvalue =  keyvalue;
+ 550   3                  if(KpairEnterF || (keyvalue!=0x08))//fei zao ming or have three times zhao ming then click the
+             - zhao ming key
+ 551   3                  {
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 10  
+
+ 552   4                  /*clr pair flag*/
+ 553   4                    //KpairtimerstartF = 0; //clr the pair timer the press the key is not the same
+ 554   4                    KpairtimerstartF = 0; //clr the pair timer
+ 555   4                   keypairtimer = 0;
+ 556   4                   K7paircounter = 0;
+ 557   4                   K7zhaomingrelaseF = 0;
+ 558   4                   KpairEnterF = 0;
+ 559   4                   /**/
+ 560   4                  }
+ 561   3                   /*reset the keypress timer*/
+ 562   3                    //_emi = 0;
+ 563   3                   keypresstimer = 0;
+ 564   3                                                //_emi = 1;
+ 565   3                                               // _emi = 0;
+ 566   3                                               // keytimer = 0;
+ 567   3                                               // _emi = 1;
+ 568   3                                               /*when mulit key zhaoming press this counter cannot ++
+ 569   3                                               when huan qi key is press this counter can not and wait the relase to counter*/
+ 570   3                   /*if(lastpkeyvalue && ((lastpkeyvalue^pkeyvalue)!=0)&&(lastpkeyvalue == (lastpkeyvalue & pkey
+             -value) ))
+ 571   3                     {
+ 572   3                       lastprekeyF =1;
+ 573   3                     }*/
+ 574   3                   // if(!KmultizhaomingrlsF && !lastprekeyF)
+ 575   3                   if(!KmultizhaomingrlsF)
+ 576   3                      {
+ 577   4      
+ 578   4                     ittranscounter++;
+ 579   4                     /*if(keypaizangrlsF && keypaizangrlstimer < 30)
+ 580   4                       {
+ 581   4                         ittranscounter--;
+ 582   4                       }*/
+ 583   4                     InitLed();
+ 584   4                     userflag5.byte = 0;
+ 585   4                      }
+ 586   3                    //if(!KmultizhaomingrlsF)
+ 587   3                     //ittranscounter++;
+ 588   3                   /*key change to clr the multi or long key press send flag*/
+ 589   3                   KmultizhaomingF = 0;
+ 590   3                   //KmultiwifiRestF = 0;
+ 591   3                   //keymachlongfunflag = 0;//clr the press short zhao ming + huanqi
+ 592   3      
+ 593   3                               /*clr the led flag*/
+ 594   3                   //if(!lastprekeyF)
+ 595   3                  // InitLed();
+ 596   3                   //userflag5.byte = 0;
+ 597   3      
+ 598   3                             /*repeat counter check the key*/
+ 599   3                   keysamerepeatflag = 1;
+ 600   3                  // keysamecounter = 0;
+ 601   3                                               /**/
+ 602   3                                                      /*to check many key release */
+ 603   3                               /*keytempvalue = keyvalue;
+ 604   3                                                       keycount = 0;
+ 605   3                                                       for(tempcount = 0; tempcount < 7; tempcount++)
+ 606   3                                                       {
+ 607   3                                                                      if(keytempvalue & 0x01)
+ 608   3                                                                       {
+ 609   3                                                                               keycount++;
+ 610   3                                                                       }
+ 611   3                                                                       keytempvalue = keytempvalue >> 1;
+ 612   3                                                       }*/
+ 613   3      
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 11  
+
+ 614   3                     keycount = getpresskeycount();
+ 615   3                       if(keycount < 2 )
+ 616   3                       {
+ 617   4                       /*smoothing the key dithering*/
+ 618   4                         /*keysamecounter=0;
+ 619   4      
+ 620   4                         keysamerepeatflag = 0;       //don't to check*/
+ 621   4      
+ 622   4                           if(keymachpresszmflag)
+ 623   4                           {
+ 624   5      
+ 625   5      
+ 626   5                               /*KmachPtimerF = 1;
+ 627   5                               _emi = 0;
+ 628   5                               keymachtimer = 0;
+ 629   5                               _emi = 1;*/
+ 630   5                               keysamerepeatflag = 0;//don't to key check
+ 631   5                              // keysamecounter = 0;
+ 632   5                              //--multile key chang to one key ,need clr the led if the led is litup
+ 633   5                               //InitLed();
+ 634   5                               //if(!lastprekeyF)
+ 635   5                               //-InitLed();
+ 636   5                               //lastprekeyF = 0;
+ 637   5                           }
+ 638   4      
+ 639   4                       }
+ 640   3      
+ 641   3                                               
+ 642   3      
+ 643   3                                               
+ 644   3                                       }
+ 645   2                                       else
+ 646   2                                       {
+ 647   3                                              /*many key change to function key need go to dithering*/
+ 648   3                                           if(keymachpresszmflag)
+ 649   3                                           {
+ 650   4                        //if(KmultizhaomingF || KmultiwifiRestF || keymachlongfunflag)//one key
+ 651   4                        if(KmultizhaomingF || keypaizconF)//one key
+ 652   4                        {
+ 653   5                       //     keysamecounter = 0;
+ 654   5                          keysamerepeatflag = 1;// to check key
+ 655   5                        }
+ 656   4                        else
+ 657   4                        {
+ 658   5                                         /*multile key inorge the key handle*/
+ 659   5                               // keysamecounter = 0;
+ 660   5                                keysamerepeatflag = 0;
+ 661   5                                /*to show x led 200ms when multile key press*/
+ 662   5                              if(keypresstimer>1040)//led x show 200ms turn off led  605--16  140--8
+ 663   5                              {
+ 664   6                                     InitLed();
+ 665   6                                     CSLIB_0_enter_DefaultMode_from_RESET();
+ 666   6      
+ 667   6                              }
+ 668   5                               else if(keypresstimer>1000)//5s 580--16  1000--8
+ 669   5                              {
+ 670   6                                //LED1TURNON;LED2TURNON;LED3TURNOFF;LED4TURNON;
+ 671   6                              //LED5TURNON;LED6TURNOFF; LED7TURNON;
+ 672   6                                   LEDALL_XON();
+ 673   6                                     keypressdownF = 0;//do noning
+ 674   6                                 KmultizhaomingF = 0;
+ 675   6                                 KmultizhaomingrlsF = 0;
+ 676   6                              }
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 12  
+
+ 677   5                        }
+ 678   4                      //dithering time to 24ms
+ 679   4                        if(KmachPtimerF && (keymachtimer >= 100))//58--16  100-8
+ 680   4                        {
+ 681   5                          KmachPtimerF = 0;
+ 682   5                        //_emi = 0;
+ 683   5                         keymachtimer = 0;
+ 684   5                         //_emi = 1;
+ 685   5                          keymachpresszmflag = 0;
+ 686   5                          KmultizhaomingrlsF = 0;//need clr avoid the transcount cannot inc
+ 687   5                        }
+ 688   4      
+ 689   4                                           }
+ 690   3                   else
+ 691   3                   {
+ 692   4                      /*smoothing the key dithering*/
+ 693   4                         /*keysamecounter++;
+ 694   4                         if(keysamecounter > 3)
+ 695   4                         {
+ 696   4                          keysamerepeatflag = 1;
+ 697   4                         }
+ 698   4                         else
+ 699   4                         {
+ 700   4                           keysamerepeatflag = 0;
+ 701   4                         }*/
+ 702   4                         keysamerepeatflag = 1;
+ 703   4                   }
+ 704   3      
+ 705   3                                       }
+ 706   2                                       
+ 707   2                              /* have any key press clr only rls tx code */        
+ 708   2                               {
+ 709   3                                      KonlyrlstxF = 0;
+ 710   3                                      //_emi = 0;
+ 711   3                                      keyonlyrlstxtimer = 0;
+ 712   3                      //_emi = 1;
+ 713   3                      //KhuanqirlsF = 0;
+ 714   3                      KyijianguanjirlsF = 0;
+ 715   3                      //KmuyurlsF = 0;
+ 716   3                      //KjinhuarlsF = 0;
+ 717   3                      //KzhaomingrlsF = 0;
+ 718   3                      //KganzaorlsF = 0;
+ 719   3                      //KqiruanrlsF = 0;
+ 720   3      
+ 721   3                               }
+ 722   2                               
+ 723   2                                       /*key timer*/
+ 724   2                                      if(!KtimerstartF)
+ 725   2                                      {
+ 726   3                                      keypresstimer = 0;
+ 727   3                                       KtimerstartF = 1;
+ 728   3                                      }
+ 729   2                                      /**/
+ 730   2                                      //-KinitRfstartF = 0;
+ 731   2                                      /**/
+ 732   2                                      //--touchkeyHandle();
+ 733   2                                      /*key counter*/
+ 734   2                                      if(keysamerepeatflag) 
+ 735   2                                      {
+ 736   3                                        keysamerepeatflag = 0;
+ 737   3                                        //touchkeyHandle();
+ 738   3                                        touchkeyHandle();
+ 739   3                                      }
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 13  
+
+ 740   2                                      /*need rf send code key clear the counter  to interval the send code*/
+ 741   2                                      /*if(keypressdownF)
+ 742   2                                      {
+ 743   2                                        keysamecounter = 0;   
+ 744   2                                      }*/
+ 745   2                                      
+ 746   2                      }
+ 747   1                      else
+ 748   1                      {
+ 749   2                              /*key release*/
+ 750   2                         // Khavepressflag = 0;
+ 751   2              lastpkeyvalue = 0;
+ 752   2              lastprekeyF = 0;//clr the prss tx code flt flag
+ 753   2                              /*mach key zao ming*/
+ 754   2                              if(keymachpresszmflag)
+ 755   2                              {
+ 756   3                                  keyledtimer = 0;
+ 757   3                     if(!KmachPtimerF)
+ 758   3                     {
+ 759   4                              KmachPtimerF = 1;
+ 760   4                        //_emi = 0;
+ 761   4                         keymachtimer = 0;
+ 762   4                         //_emi = 1;
+ 763   4                     }
+ 764   3                     //to kuai an not to counter
+ 765   3                     if(KmultizhaomingrlsF && keypresstimer>30)//20--16  30--8
+ 766   3                       {
+ 767   4                         KmultizhaomingrlsF = 0;
+ 768   4      
+ 769   4                       }
+ 770   3                              }
+ 771   2                              //58-- 30
+ 772   2                              if(KmachPtimerF && (keymachtimer >= 30))//58--30
+ 773   2                              {
+ 774   3                                      KmachPtimerF = 0;
+ 775   3                                keymachtimer = 0;     
+ 776   3                                keymachpresszmflag = 0;
+ 777   3                                 KmultizhaomingrlsF = 0;//need clr avoid the transcount cannot inc
+ 778   3                                
+ 779   3                              }
+ 780   2                              keymachpressflag = 0;
+ 781   2                      //      keymachpresszmflag = 0;
+ 782   2      /*clr the flag*/
+ 783   2      // ledzhaomingF= 0;
+ 784   2       //ledqiruanF=0;
+ 785   2       //ledliangfengF =0;
+ 786   2       ledyijiguanjiF  =0;
+ 787   2       //ledganzaoF  =0;
+ 788   2       //ledmuyuF =0;
+ 789   2       //ledhuangqiF =0;
+ 790   2                              
+ 791   2                              keyvalue = 0;
+ 792   2                              pkeyvalue = 0;
+ 793   2                              KtimerstartF = 0;
+ 794   2                              
+ 795   2                              if(ledidicatestartF && (keyledidicatetimer >= 100))//CLRLED_LONGPRESS_TIMER 58--16   100--8
+ 796   2                              {
+ 797   3      
+ 798   3                              
+ 799   3                                      InitLed();
+ 800   3                    clrflagledtimer();
+ 801   3                                
+ 802   3                              }
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 14  
+
+ 803   2                 if(!ledidicatestartF)
+ 804   2                         {
+ 805   3      
+ 806   3                              InitLed();
+ 807   3                         }
+ 808   2                                      //TurnoffallLed();
+ 809   2                              /*clr the key flag*/
+ 810   2                              keypressdownF = 0;
+ 811   2                              /*
+ 812   2                   *key pair 
+ 813   2                              */
+ 814   2                              K7zhaomingrelaseF = 0;
+ 815   2                   if(K7zhaomingpressF)
+ 816   2                               {
+ 817   3                                       K7zhaomingpressF = 0;
+ 818   3                                       K7paircounter++;
+ 819   3                                       keypaizconF =0;//clr zhang pai rls
+ 820   3      
+ 821   3                               }
+ 822   2                               if(keypairtimer>=360)//300--16  360--8
+ 823   2                               {
+ 824   3                                              /*clr pair flag*/
+ 825   3                                                KpairtimerstartF = 0; //clr the pair timer the press the key is not the same
+ 826   3                                               // KpairtimerstartF = 0; //clr the pair timer
+ 827   3                                               keypairtimer = 0;
+ 828   3                                               K7paircounter = 0;
+ 829   3                                               K7zhaomingrelaseF = 0; 
+ 830   3                                               KpairEnterF = 0;
+ 831   3                                               //INDICADE_PIN = 0;
+ 832   3                               }
+ 833   2                               if((K7paircounter > 2) && (keypairtimer >0) && (keypairtimer < 360))
+ 834   2                               {
+ 835   3                                   //K7paircounter = 0;
+ 836   3                                   //
+ 837   3                                       if(!KpairEnterF)
+ 838   3                                       {
+ 839   4                        ittranscounter++;
+ 840   4                       // _emi = 0;
+ 841   4                        keypairtimer = 0xe0;
+ 842   4      
+ 843   4                        //_emi = 1;
+ 844   4                                       }
+ 845   3                                       KpairEnterF = 1;
+ 846   3                                       KzhaomingrlsF = 0;//need clr the KzhaomingrlsF
+ 847   3                                       KyijianguanjirlsF  = 0;
+ 848   3                                       /**/
+ 849   3                                       //-KinitRfstartF = 0;
+ 850   3                                       if(keypairtimer%2)
+ 851   3                                       {
+ 852   4                                       keypressdownF = 1;
+ 853   4                                       }
+ 854   3                                                              rfmsgarry[0] = 0x03;//pei dui
+ 855   3                                   rfmsgarry[1] = 0x4d;               
+ 856   3                                       keypresstimer = 0;
+ 857   3                               }                       
+ 858   2                  /*
+ 859   2                  key press to send code if the send time is not enough,
+ 860   2                  now change to rls send code and only the multible key is press to send code
+ 861   2                  and the long have the code to send
+ 862   2                              */
+ 863   2                      //      if(!KonlyrlstxF && !KhuanqirlsF && !KyijianguanjirlsF && !KmuyurlsF && !KjinhuarlsF
+ 864   2                              //    && !KzhaomingrlsF && !KganzaorlsF && !KqiruanrlsF)
+ 865   2                              if(KmultizhaomingF)    
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 15  
+
+ 866   2                              {
+ 867   3                                      KmultizhaomingF = 0;
+ 868   3                                      KmultizhaomingrlsF = 0;
+ 869   3                                      //KmultiwifiRestF = 0;
+ 870   3                                      //keymachlongfunflag = 0;
+ 871   3                                      KlonghuanqiF = 0;
+ 872   3                                      keyledtimer = 0;
+ 873   3                                       if(!keypressdownF && (keypresstimer > 0) && (keypresstimer <70))//500ms 40--16  70--8
+ 874   3                                       {
+ 875   4                                               krlsrftxtimer = keypresstimer; 
+ 876   4                                               keypresstimer = 0;
+ 877   4                                               KrfittimerstartF = 1;
+ 878   4                                               KrepeatdataF = 1;
+ 879   4                                       }
+ 880   3                              }
+ 881   2             if(KrfittimerstartF && (krlsrftxtimer < 70))//125-80 640ms
+ 882   2                               {
+ 883   3                 //keypaizangrlsF = 1;
+ 884   3                 //keypaizangrlstimer = 0;
+ 885   3                 //keyledtimer = 0;//clr idle timer
+ 886   3                 //when pan zhang contiue pai xia need to litup led
+ 887   3                 keymachtimer = 0; //clr the timer to contiue 500ms lv
+ 888   3                                       if(KrepeatdataF)
+ 889   3                                       {
+ 890   4                                           keyledtimer = 0;
+ 891   4                                          /* if(krlsrftxtimer >=45)//30--16  45--8
+ 892   4                                             {
+ 893   4                                           //KwakupF = 0;
+ 894   4                                           InitLed();
+ 895   4                                             }*/
+ 896   4                                           keypaizconF =1;
+ 897   4                                               KrepeatdataF = 0;
+ 898   4                                               user8920_txdata();
+ 899   4                                               /*It8920_Idle();
+ 900   4                                              It8920_ResetFifo();
+ 901   4                                              It8920_filldata();
+ 902   4                                              SPI_WriteFifo();
+ 903   4                                              It892_EnterTx();
+ 904   4                                              LT8900_txdata();*/
+ 905   4      
+ 906   4                                       }
+ 907   3                               }
+ 908   2                               if(krlsrftxtimer>=100)//125-80
+ 909   2                               {
+ 910   3                                       KrfittimerstartF = 0;
+ 911   3                                       krlsrftxtimer = 0;
+ 912   3                                       KrepeatdataF =0;
+ 913   3                                       keyledtimer = 0;
+ 914   3                               }
+ 915   2                               /*multi key press have relaese but the zhaomingF is zero*/
+ 916   2                               if(!KmultizhaomingF && KmultizhaomingrlsF)
+ 917   2                               {
+ 918   3                                                              keypressdownF = 1;
+ 919   3                                      KonlyrlstxF = 1;
+ 920   3                                      KmultizhaomingrlsF = 0;
+ 921   3                                        //_emi = 0;
+ 922   3                                        keyonlyrlstxtimer = 0;
+ 923   3                                       keyledtimer = 0;
+ 924   3      
+ 925   3                        //_emi = 1;
+ 926   3                        // rfmsgarry[0] = 0x03;//
+ 927   3                                //rfmsgarry[1] = 0x37;
+ 928   3                               }
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 16  
+
+ 929   2                               /* huan qi rls send code*/
+ 930   2                               //if(KhuanqirlsF || KzhaomingrlsF || KmuyurlsF || KjinhuarlsF
+ 931   2                               
+ 932   2                                 //  || KyijianguanjirlsF || KganzaorlsF || KqiruanrlsF)
+ 933   2                               if(KyijianguanjirlsF)
+ 934   2                               {
+ 935   3                                      KmultizhaomingrlsF = 0;
+ 936   3                                      //KhuanqirlsF = 0;
+ 937   3                               //     KzhaomingrlsF = 0;
+ 938   3                                      //KmuyurlsF = 0;
+ 939   3                                      //KjinhuarlsF = 0;
+ 940   3                                      KyijianguanjirlsF = 0;
+ 941   3                                      //KganzaorlsF = 0;
+ 942   3                                      //KqiruanrlsF = 0;
+ 943   3                                      
+ 944   3                                      keypressdownF = 1;
+ 945   3                                      KonlyrlstxF = 1;
+ 946   3                                       // _emi = 0;
+ 947   3      
+ 948   3                                        keyonlyrlstxtimer = keypresstimer;
+ 949   3                                        
+ 950   3                                        /*huang qi key need from the zero to counter*/
+ 951   3                                       /* if(KhuanqirlsF)
+ 952   3                                        {
+ 953   3                                        keyonlyrlstxtimer = 0;
+ 954   3                                        ittranscounter++;//huan qi key is release to send code 
+ 955   3                                        KhuanqirlsPressF = 1;// to check the huanqi key if press again
+ 956   3                                        KhuanqiPressStartF = 0;
+ 957   3                                        keyonlyhuanqitimer = 0;
+ 958   3                                        }*/
+ 959   3                                       // KhuanqirlsF = 0;
+ 960   3                                        
+ 961   3                        //_emi = 1;
+ 962   3                        //-rfmsgarry[0] = 0x03;//
+ 963   3                                //-rfmsgarry[1] = 0x39;
+ 964   3                                      
+ 965   3                               }
+ 966   2                   /*liang feng or cui feng or jing hua send code*/
+ 967   2                              /* if(KjinhuarlsF)
+ 968   2                               {
+ 969   2                                      KjinhuarlsF = 0;
+ 970   2                      keypressdownF = 1;
+ 971   2                      KonlyrlstxF = 1;
+ 972   2                                        _emi = 0;
+ 973   2                                        keyonlyrlstxtimer = 0;
+ 974   2                        if(STANDBY_TIME < 0x12)
+ 975   2                        {
+ 976   2                              STANDBY_TIME = 0x12;
+ 977   2                        }
+ 978   2                        _emi = 1;
+ 979   2                       //- rfmsgarry[0] = 0x03;//cui feng 0x033B
+ 980   2                                //-rfmsgarry[1] = 0x3B;
+ 981   2                               } */ 
+ 982   2                               
+ 983   2                               if(KonlyrlstxF && (keyonlyrlstxtimer < 85))//KEYPRESS_RFTX_TIMR 50--16 80--8
+ 984   2                               {
+ 985   3      
+ 986   3                                  srand(CSLIB_node[0].rawBuffer[0]);
+ 987   3                                   romd_datatimer = (rand()%10);
+ 988   3                                   romd_datatimer +=8;
+ 989   3                                   //delay1ms(romd_datatimer+30);
+ 990   3                                   if(keyonlyrlstxtimer > prerlstxtimer)
+ 991   3                                     {
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 17  
+
+ 992   4      
+ 993   4                                       if((keyonlyrlstxtimer - prerlstxtimer) >= romd_datatimer)//8--18
+ 994   4                                        // if((keyonlyrlstxtimer - prerlstxtimer) >= 5)
+ 995   4                                         {
+ 996   5                                           prerlstxtimer = keyonlyrlstxtimer;
+ 997   5                          // if( romd_datatimer%2)
+ 998   5                             {
+ 999   6                               //INDICADE_PIN = !INDICADE_PIN;
+1000   6                           keypressdownF = 1;
+1001   6                           keyledtimer = 0;//clr idle timer
+1002   6                           keypaizconF =0;//clr zhang pai rls
+1003   6                             }
+1004   5                                         }
+1005   4                                     }
+1006   3                                   //keypressdownF = 1;
+1007   3                                   //keyledtimer = 0;//clr idle timer
+1008   3                               } 
+1009   2                               if(keyonlyrlstxtimer >= 85)//KEYPRESS_RFTX_TIMR
+1010   2                               {
+1011   3                                  // KwakupF = 0;
+1012   3                                   InitLed();
+1013   3                                 KonlyrlstxF = 0;
+1014   3                                 //   _emi = 0;
+1015   3                                      keyonlyrlstxtimer = 0;
+1016   3                                      /*huang qi*/
+1017   3                                      //KhuanqirlsPressF = 0;
+1018   3                                        //KhuanqiPressStartF = 0;
+1019   3                                        //keyonlyhuanqitimer = 0;
+1020   3                      //_emi = 1;
+1021   3                      keypressdownF = 0;
+1022   3      
+1023   3                      //----
+1024   3                      KpairtimerstartF = 0; //clr the pair timer the press the key is not the same
+1025   3                     // KpairtimerstartF = 0; //clr the pair timer
+1026   3                     keypairtimer = 0;
+1027   3                     K7paircounter = 0;
+1028   3                     K7zhaomingrelaseF = 0;
+1029   3                     KpairEnterF = 0;
+1030   3                       
+1031   3                               }  
+1032   2                               
+1033   2      
+1034   2                      }
+1035   1      
+1036   1              /*no key press wake up to quickly to sleep*/
+1037   1          //if(!ANY_KEY_PRESSF && (keyledtimer > 13))//3*30=90ms--100ms
+1038   1                      if(!KinitRfstartF && (keyledtimer > 400))//130--16  220--8
+1039   1          {
+1040   2                          KinitRfstartF = 1;
+1041   2                  LT8900_Reset();
+1042   2                       LT8900Reg_Init();
+1043   2                       It8920_Idle();
+1044   2                       It8920_Sleep();
+1045   2                       //LT8920_SPISS_PIN = 1;
+1046   2                               // _emi = 0;
+1047   2                        keyledtimer = 0;
+1048   2                        //app_sleep_counter = 100;//to quickly sleep
+1049   2                        //_emi = 1;   
+1050   2                        //INDICADE_PIN = !INDICADE_PIN;
+1051   2          }
+1052   1      
+1053   1              if(keypressdownF)
+1054   1              {
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 18  
+
+1055   2      
+1056   2                      keypressdownF = 0;
+1057   2                      user8920_txdata();
+1058   2      
+1059   2              }
+1060   1         /*set the io port*/
+1061   1      
+1062   1              
+1063   1      
+1064   1      }
+1065          unsigned char getpresskeycount(void)
+1066          {
+1067   1        unsigned char tmpkeycount = 0, i;
+1068   1        unsigned char tmplpkeyvalue = keyvalue;
+1069   1        //keytempvalue = keyvalue;
+1070   1        for(i = 0; i < 7; i++)
+1071   1        {
+1072   2           if(tmplpkeyvalue & 0x01)
+1073   2            {
+1074   3               tmpkeycount++;
+1075   3            }
+1076   2           tmplpkeyvalue = tmplpkeyvalue >> 1;
+1077   2        }
+1078   1        return(tmpkeycount);
+1079   1      }
+1080          
+1081          static void touchkeyHandle(void)
+1082          {
+1083   1        switch(keyvalue)
+1084   1        {
+1085   2          case 0x01:
+1086   2           // LED5TURNON();
+1087   2            nowledvalue = LED5ON_VALUE;
+1088   2            rfmsgarry[0] = 0x03;//gan zao
+1089   2            rfmsgarry[1] = 0x90;
+1090   2      
+1091   2            break;
+1092   2          case 0x02:
+1093   2            //LED7TURNON();
+1094   2            nowledvalue = LED7ON_VALUE;
+1095   2            rfmsgarry[0] = 0x03;//huang qi
+1096   2            rfmsgarry[1] = 0x39;
+1097   2            break;
+1098   2          case 0x04:
+1099   2            //LED2TURNON();
+1100   2            nowledvalue = LED2ON_VALUE;
+1101   2      
+1102   2            rfmsgarry[0] = 0x03;//mu yu
+1103   2            rfmsgarry[1] = 0x5A;
+1104   2      
+1105   2            break;
+1106   2          case 0x08:
+1107   2            //LED4TURNON();
+1108   2            nowledvalue = LED4ON_VALUE;
+1109   2            rfmsgarry[0] = 0x03;//zhao ming 0x0337
+1110   2            rfmsgarry[1] = 0x37;
+1111   2      
+1112   2      
+1113   2      
+1114   2      
+1115   2            break;
+1116   2          case 0x10:
+1117   2            //LED1TURNON();
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 19  
+
+1118   2            nowledvalue = LED1ON_VALUE;
+1119   2            rfmsgarry[0] = 0x03;//yi jian guan ji
+1120   2            rfmsgarry[1] = 0x50;
+1121   2      
+1122   2            break;
+1123   2          case 0x20:
+1124   2            //LED3TURNON();
+1125   2            nowledvalue = LED3ON_VALUE;
+1126   2            rfmsgarry[0] = 0x03;//cui feng 0x033B
+1127   2                   rfmsgarry[1] = 0x3B;
+1128   2            break;
+1129   2          case 0x40:
+1130   2      
+1131   2            //LED6TURNON();
+1132   2            nowledvalue = LED6ON_VALUE;
+1133   2            rfmsgarry[0] = 0x03;//quruan 0x033F
+1134   2            rfmsgarry[1] = 0x3F;
+1135   2            break;
+1136   2          default:
+1137   2            if(keypresstimer<KEYPRESS_RFTX_TIMR)//640--zao ming
+1138   2            {
+1139   3                keycount = getpresskeycount();
+1140   3                 if(keycount >=3 ) //k7 zhao ming
+1141   3                 {
+1142   4                  // LED1TURNOFF;
+1143   4                  // LED2TURNOFF;
+1144   4                  // LED3TURNOFF;
+1145   4                  // LED4TURNOFF;
+1146   4                  // LED5TURNOFF;
+1147   4                   //LED6TURNOFF;
+1148   4                     LED4TURNON();
+1149   4                   //nowledvalue = LED7ON_VALUE;
+1150   4                           keypressdownF = 1;
+1151   4                rfmsgarry[0] = 0x03;//zhao ming 0x0337
+1152   4                rfmsgarry[1] = 0x37;
+1153   4                KmultizhaomingF = 1;//���� ����ʱ��
+1154   4                KmultizhaomingrlsF = 1;//���� ����ʱ��
+1155   4                keypaizconF = 0;   //paizhang rls to set 1
+1156   4                  ledidicatestartF = 1;
+1157   4                    keyledidicatetimer = 0;
+1158   4                   //CSLIB_0_enter_DefaultMode_from_RESET(); //easy to wu chu
+1159   4                    //user_rset_scancapcity();
+1160   4                 }
+1161   3                 else
+1162   3                 {
+1163   4                  //--if one key is press and led is lit up ,then sencond key is press need clr the led
+1164   4                     /*if(lastprekeyF)
+1165   4                     {
+1166   4                         //the prss to flt press send code have a gan lao bo xing
+1167   4                         if(keypresstimer > 4)//5*8
+1168   4                           {
+1169   4                         //CSLIB_0_enter_DefaultMode_from_RESET();
+1170   4                             InitLed();
+1171   4                 userflag5.byte = 0;//clr the led flag
+1172   4                           }
+1173   4      
+1174   4                       }
+1175   4                     else
+1176   4                       {
+1177   4      
+1178   4                         //InitLed();
+1179   4             userflag5.byte = 0;//clr the led flag
+1180   4                       }*/
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 20  
+
+1181   4                     //InitLed();
+1182   4        // userflag5.byte = 0;//clr the led flag
+1183   4      
+1184   4      
+1185   4                 }
+1186   3      
+1187   3      
+1188   3      
+1189   3            }
+1190   2      
+1191   2      
+1192   2              keymachpresszmflag = 1;
+1193   2            KmachPtimerF = 1;
+1194   2           //_emi = 0;
+1195   2           keymachtimer = 0;
+1196   2           //_emi = 1;
+1197   2           keylvvalue = 5;
+1198   2          break;
+1199   2        }
+1200   1      if(keypresstimer<KEYPRESS_RFTX_TIMR)//2s 130-85
+1201   1      {
+1202   2      
+1203   2      //if(KmultizhaomingF)
+1204   2         if(keymachpresszmflag)
+1205   2        {
+1206   3      
+1207   3        }
+1208   2      else
+1209   2        {
+1210   3          //if((keypresstimer>2) || (keyvalue==0x08) )
+1211   3          if(keypresstimer>=keylvvalue)
+1212   3            {
+1213   4                  if(!ledyijiguanjiF)
+1214   4                {
+1215   5                       ledyijiguanjiF = 1;
+1216   5                      //LED1TURNON;LED2TURNOFF;LED3TURNOFF;LED4TURNOFF;
+1217   5                      //LED5TURNOFF;LED6TURNOFF; LED7TURNOFF;
+1218   5                       semi74hc_writedata(nowledvalue);
+1219   5                                 ledidicatestartF = 1;
+1220   5                       keyledidicatetimer = 0;
+1221   5                      }
+1222   4                      KyijianguanjirlsF = 1;
+1223   4      
+1224   4                      if(keyvalue == 0x08)
+1225   4                       {
+1226   5      
+1227   5                          if(!KpairtimerstartF)
+1228   5                           {
+1229   6                            KpairtimerstartF = 1;
+1230   6                            K7paircounter = 0;
+1231   6                           //_emi = 0;
+1232   6                           keypairtimer = 0;
+1233   6                           //_emi = 1;
+1234   6                           }
+1235   5                           if(!K7zhaomingrelaseF)
+1236   5                           {
+1237   6                            K7zhaomingrelaseF = 1;
+1238   6                           K7zhaomingpressF = 1;
+1239   6                            }
+1240   5      
+1241   5                       }
+1242   4                      //if(keypresstimer>1)
+1243   4                      keypressdownF = 1;// key press and relase both to send code
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 21  
+
+1244   4                  }
+1245   3                      //keypaizangrlsF = 0;//clr pai zangrls
+1246   3                      //keypaizangrlstimer = 0;
+1247   3        }
+1248   2      
+1249   2      
+1250   2            /*if(keypresstimer>=CLRLED_LONGPRESS_TIMER)//200ms 25 clr led-->�ĳ�500ms --63  CLRLED_LONGPRESS
+             -_TIMER 63
+1251   2            {
+1252   2             InitLed();
+1253   2      clrflagledtimer();
+1254   2            }*/
+1255   2      
+1256   2      }
+1257   1      else if(keypresstimer>1040)//led x show 200ms turn off led 605--16  1040--8
+1258   1      {
+1259   2                InitLed();
+1260   2                CSLIB_0_enter_DefaultMode_from_RESET();
+1261   2      }
+1262   1      else if(keypresstimer>1000)//5s  580--16    1000--8
+1263   1      {
+1264   2      KyijianguanjirlsF = 0;
+1265   2      keypressdownF = 0;
+1266   2      
+1267   2               //LED1TURNON;LED2TURNON;LED3TURNOFF;LED4TURNON;
+1268   2      // LED5TURNON;LED6TURNOFF; LED7TURNON;
+1269   2      LEDALL_XON();
+1270   2      }
+1271   1      else
+1272   1      {
+1273   2      KyijianguanjirlsF = 0;
+1274   2      //LED1TURNOFF;LED2TURNOFF;LED3TURNOFF;LED4TURNOFF;
+1275   2      //LED5TURNOFF;LED6TURNOFF; LED7TURNOFF;
+1276   2      
+1277   2      keypressdownF = 0;//do noning
+1278   2      ledyijiguanjiF = 0;
+1279   2      
+1280   2      //ru guo an jian hen ming gan,ze yi zhi hui jin lai ,dao zhi tiao
+1281   2                //KmultizhaomingF = 0;
+1282   2                //KmultizhaomingrlsF = 0;
+1283   2                //InitLed();
+1284   2                //clrflagledtimer(); //zan pai zao ming chang an hui shan
+1285   2      
+1286   2                if(!KmultizhaomingrlsF)
+1287   2                  {
+1288   3                    InitLed();
+1289   3                    clrflagledtimer();
+1290   3                  }
+1291   2      
+1292   2                /*if(KmultizhaomingrlsF && keypresstimer>40)
+1293   2                  {
+1294   2                    KmultizhaomingrlsF = 0;
+1295   2      
+1296   2                  }*/
+1297   2                /*else
+1298   2                  {
+1299   2      
+1300   2                   // user_rset_scancapcity();
+1301   2                  }*/
+1302   2      }
+1303   1      
+1304   1      
+1305   1      }
+C51 COMPILER V9.60.0.0   USER_PROGRAM                                                      04/21/2021 08:26:00 PAGE 22  
+
+1306          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2503    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     37    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -12,8 +12,8 @@
 
 
 #if (BK3435_DEMO_KIT || BK3435_BELON_BOARD)
-#define KEYBOARD_MAX_COL_SIZE 3
-#define KEYBOARD_MAX_ROW_SIZE 5
+#define KEYBOARD_MAX_COL_SIZE 5
+#define KEYBOARD_MAX_ROW_SIZE 4
 #endif
 
 #if BK3435_HBG_BOARD
@@ -38,7 +38,7 @@ extern app_key_type app_key_state;
 extern unsigned char voice_key_press_status;
 
 
-#define	APP_KEYSCAN_DURATION	(2)		// 10ms
+#define	APP_KEYSCAN_DURATION	(1)		//1--5ms 2--10ms
 #define	APP_LEDDUTY_DB		((50/APP_KEYSCAN_DURATION)-1)
 
 
@@ -248,5 +248,5 @@ void key_wakeup_config(void);
 void key_wakeup_set(void);
 void key_process(void);
 app_key_type key_status_check(void);
-
+void delay_us(uint32_t num);
 #endif

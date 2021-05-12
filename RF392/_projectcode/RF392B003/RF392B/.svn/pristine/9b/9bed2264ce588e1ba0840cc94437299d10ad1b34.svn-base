@@ -1,0 +1,21 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+A51_UPPER_SRCS := 
+OBJ_UPPER_SRCS := 
+S79_SRCS := 
+SRC_UPPER_SRCS := 
+ASM_SRCS := 
+C_SRCS := 
+S_UPPER_SRCS := 
+EXECUTABLES := 
+OBJS := 
+
+# Every subdirectory with source files must be described here
+SUBDIRS := \
+app_code \
+lib/cslib/application_layer \
+lib/efm8sb1/cslib/device_layer \
+src \
+
